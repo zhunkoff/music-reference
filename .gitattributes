@@ -1,0 +1,5 @@
+# Normalize text files to LF on every platform.
+* text=auto eol=lf
+
+# Keep generated PDFs binary.
+*.pdf binary

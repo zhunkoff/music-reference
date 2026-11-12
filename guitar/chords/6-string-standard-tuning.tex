@@ -1,0 +1,343 @@
+% Copyright (c) 2026 Sergey Zhunkov.
+% SPDX-License-Identifier: CC-BY-4.0
+% https://creativecommons.org/licenses/by/4.0/
+%
+% Compile with LuaLaTeX. The default language is English.
+% lualatex 6-string-standard-tuning.tex
+% lualatex -jobname=6-string-standard-tuning.ru '\def\ChartLanguage{ru}\input{6-string-standard-tuning.tex}'
+%
+% Set \ChartLanguage to ru or en before \input to select a language.
+% Set \ShowFingerNumbers to false before \input for dots without finger numbers.
+% Finger numbers use a fixed 6.8bp size and extra weight for print readability.
+\documentclass[a4paper,landscape]{article}
+\usepackage[margin=0pt]{geometry}
+\usepackage{fontspec}
+\usepackage{babel}
+\usepackage{etoolbox}
+\usepackage{tikz}
+\usetikzlibrary{babel}
+\usepackage{hyperref}
+
+\providecommand{\ChartLanguage}{en}
+\providecommand{\ShowFingerNumbers}{true}
+\newif\ifChartFingerNumbers
+\ifdefstring{\ShowFingerNumbers}{true}{%
+  \ChartFingerNumberstrue
+}{%
+  \ifdefstring{\ShowFingerNumbers}{false}{%
+    \ChartFingerNumbersfalse
+  }{%
+    \PackageError{guitar-chord-chart}{Unsupported ShowFingerNumbers '\ShowFingerNumbers'}
+      {Set ShowFingerNumbers to true or false.}
+  }%
+}
+\newif\ifChartRussian
+\ifdefstring{\ChartLanguage}{ru}{%
+  \ChartRussiantrue
+  \babelprovide[import,main]{russian}
+  \babelprovide[import]{english}
+}{%
+  \ifdefstring{\ChartLanguage}{en}{%
+    \ChartRussianfalse
+    \babelprovide[import,main]{english}
+    \babelprovide[import]{russian}
+  }{%
+    \PackageError{guitar-chord-chart}{Unsupported ChartLanguage '\ChartLanguage'}
+      {Set ChartLanguage to ru or en.}
+  }%
+}
+
+% These fonts are included in the dejavu package in TeX Live.
+% Disable kerning and ligatures to match the original ReportLab typography.
+\setmainfont{DejaVuSansCondensed.ttf}[
+  BoldFont=DejaVuSansCondensed-Bold.ttf,
+  Ligatures=NoCommon,
+  RawFeature={-kern,-clig}
+]
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+
+\newcommand{\Localize}[2]{\ifChartRussian#1\else#2\fi}
+\newcommand{\LabelGap}{\hspace{2\fontdimen2\font}}
+\newcommand{\ChartTitle}{\Localize{Аккорды для гитары}{Guitar chords}}
+\newcommand{\ChartSubtitle}{\Localize
+  {Шестиструнная гитара\LabelGap·\LabelGap Стандартный строй E A D G B E}
+  {Six-string guitar\LabelGap·\LabelGap Standard tuning E A D G B E}}
+\newcommand{\ChartSubject}{\Localize
+  {96 аппликатур для шестиструнной гитары в стандартном строе}
+  {96 chord fingerings for six-string guitar in standard tuning}}
+\hypersetup{
+  pdftitle={\ChartTitle},
+  pdfauthor={Sergey Zhunkov},
+  pdfsubject={\ChartSubject},
+  pdfkeywords={guitar, chords, standard tuning, CC BY 4.0}
+}
+\ifChartRussian
+  \hypersetup{pdflang={ru-RU}}
+\else
+  \hypersetup{pdflang={en}}
+\fi
+
+\definecolor{ChartInk}{RGB}{23,43,50}
+\definecolor{ChartMuted}{RGB}{70,91,99}
+\definecolor{ChartAccent}{RGB}{25,87,85}
+\definecolor{ChartGrid}{RGB}{103,122,129}
+\definecolor{ChartRule}{RGB}{197,208,209}
+\definecolor{ChartHeader}{RGB}{231,239,239}
+\definecolor{ChartStripe}{RGB}{244,247,247}
+
+% All drawing coordinates and font sizes use PDF points (bp, 1/72 inch).
+% The origin is the bottom-left corner of the A4 landscape page.
+% Optional anchor, x, y, font size, color, text.
+\newcommand{\ChartText}[6][base west]{%
+  \node[anchor=#1,inner sep=0pt,outer sep=0pt,text=#5,
+    font=\fontsize{#4bp}{#4bp}\selectfont] at ({#2},{#3}) {#6};%
+}
+
+\newcount\ChartRowIndex
+\newcount\ChartColumnIndex
+
+% Start one root row. The second and third arguments are Russian/English names.
+\newcommand{\RootRow}[3]{%
+  \advance\ChartRowIndex by 1
+  \ChartColumnIndex=0
+  \ChartText{39}{461.8-69.5*\ChartRowIndex}{16.4}{ChartAccent}{\bfseries#1}
+  \ChartText{39}{447.4-69.5*\ChartRowIndex}{9}{ChartMuted}{\Localize{#2}{#3}}
+}
+
+% Chord name, first fret shown, six fret/finger pairs, barre spans.
+% Pairs run from string 6 (low E) to string 1 (high E).
+% Fret -1 means muted, 0 means open. Finger 0 draws no separate dot.
+% A barre span is starting string / ending string / absolute fret.
+% Example: 5/1/3 means a barre across strings 5 through 1 at fret 3.
+\newcommand{\Chord}[4]{%
+  \begin{scope}[shift={(138.9931+86.986225*\ChartColumnIndex,
+                        467-69.5*\ChartRowIndex)}]
+    \ChartText[base]{22.5}{11.3}{11.4}{ChartInk}{\bfseries#1}
+    \foreach \fret/\finger [count=\stringindex from 0] in {#3} {
+      \pgfmathsetmacro{\StringX}{9*\stringindex}
+      \draw[ChartGrid,line width=.57bp] (\StringX,0) -- (\StringX,-38.8);
+      \ifnum\fret=-1
+        \draw[ChartInk,line width=.95bp]
+          (\StringX-1.85,3.55) -- (\StringX+1.85,7.25)
+          (\StringX-1.85,7.25) -- (\StringX+1.85,3.55);
+      \else
+        \ifnum\fret=0
+          \draw[ChartInk,line width=.95bp] (\StringX,5.4) circle[radius=2.1bp];
+        \fi
+      \fi
+    }
+    \ifnum#2=1
+      \draw[ChartInk,line width=1.65bp] (0,0) -- (45,0);
+    \else
+      \draw[ChartGrid,line width=.53bp] (0,0) -- (45,0);
+      \ChartText[base east]{-7}{-7.2}{7.6}{ChartMuted}{\bfseries#2}
+    \fi
+    \foreach \fretline in {1,...,4} {
+      \draw[ChartGrid,line width=.53bp] (0,-9.7*\fretline) -- (45,-9.7*\fretline);
+    }
+    \foreach \startstring/\endstring/\barrefret in {#4} {
+      \draw[ChartInk,line width=6.6bp,line cap=round]
+        ({9*(6-\startstring)},{-9.7*(\barrefret-#2+.5)}) --
+        ({9*(6-\endstring)},{-9.7*(\barrefret-#2+.5)});
+    }
+    \foreach \fret/\finger [count=\stringindex from 0] in {#3} {
+      \ifnum\finger>0
+        \pgfmathsetmacro{\FingerX}{9*\stringindex}
+        \pgfmathsetmacro{\FingerY}{-9.7*(\fret-#2+.5)}
+        \fill[ChartInk] (\FingerX,\FingerY) circle[radius=3.85bp];
+        \ifChartFingerNumbers
+          \ChartText[base]{\FingerX}{\FingerY-6.8/3}
+            {6.8}{white}{\bfseries\addfontfeatures{FakeBold=3}\finger}
+        \fi
+      \fi
+    }
+  \end{scope}
+  \advance\ChartColumnIndex by 1
+}
+
+\newcommand{\ChartFrame}[2]{%
+  \ChartText{28}{553}{30}{ChartInk}{\bfseries\ChartTitle}
+  \ChartText{29}{531}{11.6}{ChartMuted}{\ChartSubtitle}
+  \ChartText[base east]{813.8898}{551}{18}{ChartAccent}{\bfseries#2}
+  \ChartText[base east]{813.8898}{531}{10}{ChartMuted}{#1 / 2}
+  \fill[ChartHeader,rounded corners=4bp] (28,492) rectangle (813.8898,516);
+  \foreach \rowbottom in {353,214,75} {
+    \fill[ChartStripe] (28,\rowbottom) rectangle (813.8898,\rowbottom+69.5);
+  }
+  \foreach \rowrule in {422.5,353,283.5,214,144.5} {
+    \draw[ChartRule,line width=.48bp] (28,\rowrule) -- (813.8898,\rowrule);
+  }
+  \ChartText{39}{500.1}{9.4}{ChartAccent}{\bfseries\Localize{Тоника}{Root}}
+  \foreach \heading [count=\column from 0] in {
+    \Localize{Мажор}{Major},\Localize{Минор}{Minor},7,m7,maj7,sus2,sus4,add9} {
+    \ChartText[base]{161.4931+86.986225*\column}{500.1}{9.4}{ChartAccent}
+      {\bfseries\heading}
+  }
+  \draw[ChartRule,line width=.7bp] (28,75) -- (813.8898,75);
+  \draw[ChartRule,line width=.55bp] (118,75) -- (118,492);
+  \ChartText{28}{52}{9.7}{ChartAccent}
+    {\bfseries\Localize{Как читать схемы}{How to read}}
+  \ChartText{139}{52}{9.1}{ChartMuted}{\Localize
+    {Струны от толстой (6-й) слева до тонкой (1-й) справа.}
+    {Strings run from low E (6th) on the left to high E (1st) on the right.}}
+  \ChartText{28}{37}{9}{ChartMuted}
+    {×\LabelGap\Localize{пропустить струну}{omit string}}
+  \ChartText{139}{37}{9}{ChartMuted}
+    {○\LabelGap\Localize{открытая струна}{open string}}
+  \ifChartFingerNumbers
+    \ChartText{252}{37}{9}{ChartMuted}{\Localize
+      {1-4 в точках\LabelGap пальцы от указательного до мизинца}
+      {1-4 in dots\LabelGap fingers from index to little finger}}
+  \else
+    \ChartText{252}{37}{9}{ChartMuted}{\Localize
+      {Точка\LabelGap прижатая струна}{Dot\LabelGap fretted string}}
+  \fi
+  \ChartText{494}{37}{9}{ChartMuted}
+    {\Localize{Полоса}{Bar}\LabelGap\Localize{баррэ}{barre}}
+  \ChartText{581}{37}{9}{ChartMuted}{\Localize
+    {Цифра слева\LabelGap первый лад схемы}{Number at left\LabelGap first fret shown}}
+}
+
+% The shipout hook places the drawing independently of text margins.
+\newcommand{\ChartPage}[3]{%
+  \AddToHookNext{shipout/background}{%
+    \put(0,-\paperheight){%
+      \begin{tikzpicture}[overlay,x=1bp,y=1bp]
+        \ChartRowIndex=-1
+        \ChartFrame{#1}{#2}
+        #3
+      \end{tikzpicture}%
+    }%
+  }%
+  \null\clearpage
+}
+
+\begin{document}
+\ChartPage{1}{C - F}{
+  \RootRow{C}{до}{C natural}
+  \Chord{C}{1}{-1/0,3/3,2/2,0/0,1/1,0/0}{}
+  \Chord{Cm}{3}{-1/0,3/1,5/3,5/4,4/2,3/1}{5/1/3}
+  \Chord{C7}{1}{-1/0,3/3,2/2,3/4,1/1,0/0}{}
+  \Chord{Cm7}{3}{-1/0,3/1,5/3,3/0,4/2,3/1}{5/1/3}
+  \Chord{Cmaj7}{1}{-1/0,3/3,2/2,0/0,0/0,0/0}{}
+  \Chord{Csus2}{1}{-1/0,3/3,0/0,0/0,1/1,3/4}{}
+  \Chord{Csus4}{1}{-1/0,3/3,3/4,0/0,1/1,1/1}{2/1/1}
+  \Chord{Cadd9}{1}{-1/0,3/2,2/1,0/0,3/3,3/4}{}
+
+  \RootRow{C♯/D♭}{до♯ / ре♭}{C sharp / D flat}
+  \Chord{C♯}{4}{-1/0,4/1,6/2,6/3,6/4,4/1}{5/1/4}
+  \Chord{C♯m}{4}{-1/0,4/1,6/3,6/4,5/2,4/1}{5/1/4}
+  \Chord{C♯7}{4}{-1/0,4/1,6/3,4/0,6/4,4/1}{5/1/4}
+  \Chord{C♯m7}{4}{-1/0,4/1,6/3,4/0,5/2,4/1}{5/1/4}
+  \Chord{C♯maj7}{4}{-1/0,4/1,6/3,5/2,6/4,4/1}{5/1/4}
+  \Chord{C♯sus2}{4}{-1/0,4/1,6/3,6/4,4/0,4/1}{5/1/4}
+  \Chord{C♯sus4}{4}{-1/0,4/1,6/2,6/3,7/4,4/1}{5/1/4}
+  \Chord{C♯add9}{1}{-1/0,4/3,3/2,1/1,4/4,4/4}{2/1/4}
+
+  \RootRow{D}{ре}{D natural}
+  \Chord{D}{1}{-1/0,-1/0,0/0,2/1,3/3,2/2}{}
+  \Chord{Dm}{1}{-1/0,-1/0,0/0,2/2,3/3,1/1}{}
+  \Chord{D7}{1}{-1/0,-1/0,0/0,2/2,1/1,2/3}{}
+  \Chord{Dm7}{1}{-1/0,-1/0,0/0,2/2,1/1,1/1}{2/1/1}
+  \Chord{Dmaj7}{1}{-1/0,-1/0,0/0,2/1,2/0,2/1}{3/1/2}
+  \Chord{Dsus2}{1}{-1/0,-1/0,0/0,2/1,3/3,0/0}{}
+  \Chord{Dsus4}{1}{-1/0,-1/0,0/0,2/1,3/3,3/4}{}
+  \Chord{Dadd9}{2}{-1/0,-1/0,0/0,2/1,5/4,2/2}{}
+
+  \RootRow{E♭/D♯}{ми♭ / ре♯}{E flat / D sharp}
+  \Chord{E♭}{1}{-1/0,-1/0,1/1,3/2,4/4,3/3}{}
+  \Chord{E♭m}{1}{-1/0,-1/0,1/1,3/3,4/4,2/2}{}
+  \Chord{E♭7}{1}{-1/0,-1/0,1/1,3/3,2/2,3/4}{}
+  \Chord{E♭m7}{1}{-1/0,-1/0,1/1,3/4,2/2,2/3}{}
+  \Chord{E♭maj7}{1}{-1/0,-1/0,1/1,3/3,3/0,3/3}{3/1/3}
+  \Chord{E♭sus2}{1}{-1/0,-1/0,1/1,3/2,4/4,1/1}{4/1/1}
+  \Chord{E♭sus4}{1}{-1/0,-1/0,1/1,3/2,4/3,4/3}{2/1/4}
+  \Chord{E♭add9}{3}{-1/0,6/3,5/2,3/1,6/4,6/4}{2/1/6}
+
+  \RootRow{E}{ми}{E natural}
+  \Chord{E}{1}{0/0,2/2,2/3,1/1,0/0,0/0}{}
+  \Chord{Em}{1}{0/0,2/2,2/3,0/0,0/0,0/0}{}
+  \Chord{E7}{1}{0/0,2/2,0/0,1/1,0/0,0/0}{}
+  \Chord{Em7}{1}{0/0,2/2,0/0,0/0,0/0,0/0}{}
+  \Chord{Emaj7}{1}{0/0,2/3,1/1,1/2,0/0,0/0}{}
+  \Chord{Esus2}{1}{0/0,2/1,4/3,4/4,0/0,0/0}{}
+  \Chord{Esus4}{1}{0/0,2/1,2/2,2/3,0/0,0/0}{}
+  \Chord{Eadd9}{1}{0/0,2/2,2/3,1/1,0/0,2/4}{}
+
+  \RootRow{F}{фа}{F natural}
+  \Chord{F}{1}{1/1,3/3,3/4,2/2,1/0,1/1}{6/1/1}
+  \Chord{Fm}{1}{1/1,3/3,3/4,1/0,1/0,1/1}{6/1/1}
+  \Chord{F7}{1}{1/1,3/3,1/0,2/2,1/0,1/1}{6/1/1}
+  \Chord{Fm7}{1}{1/1,3/3,1/0,1/0,1/0,1/1}{6/1/1}
+  \Chord{Fmaj7}{1}{-1/0,-1/0,3/3,2/2,1/1,0/0}{}
+  \Chord{Fsus2}{3}{-1/0,-1/0,3/1,5/2,6/4,3/1}{4/1/3}
+  \Chord{Fsus4}{1}{1/1,3/2,3/3,3/4,1/0,1/1}{6/1/1}
+  \Chord{Fadd9}{1}{-1/0,-1/0,3/3,2/2,1/1,3/4}{}
+
+}
+
+\ChartPage{2}{F♯ - B}{
+  \RootRow{F♯/G♭}{фа♯ / соль♭}{F sharp / G flat}
+  \Chord{F♯}{1}{2/1,4/3,4/4,3/2,2/0,2/1}{6/1/2}
+  \Chord{F♯m}{1}{2/1,4/3,4/4,2/0,2/0,2/1}{6/1/2}
+  \Chord{F♯7}{1}{2/1,4/3,2/0,3/2,2/0,2/1}{6/1/2}
+  \Chord{F♯m7}{1}{2/1,4/3,2/0,2/0,2/0,2/1}{6/1/2}
+  \Chord{F♯maj7}{1}{2/1,-1/0,3/3,3/4,2/2,-1/0}{}
+  \Chord{F♯sus2}{4}{-1/0,-1/0,4/1,6/2,7/4,4/1}{4/1/4}
+  \Chord{F♯sus4}{1}{2/1,4/2,4/3,4/4,2/0,2/1}{6/1/2}
+  \Chord{F♯add9}{1}{-1/0,-1/0,4/3,3/2,2/1,4/4}{}
+
+  \RootRow{G}{соль}{G natural}
+  \Chord{G}{1}{3/2,2/1,0/0,0/0,0/0,3/3}{}
+  \Chord{Gm}{3}{3/1,5/3,5/4,3/0,3/0,3/1}{6/1/3}
+  \Chord{G7}{1}{3/3,2/2,0/0,0/0,0/0,1/1}{}
+  \Chord{Gm7}{3}{3/1,5/3,3/0,3/0,3/0,3/1}{6/1/3}
+  \Chord{Gmaj7}{1}{3/3,2/2,0/0,0/0,0/0,2/1}{}
+  \Chord{Gsus2}{5}{-1/0,-1/0,5/1,7/2,8/4,5/1}{4/1/5}
+  \Chord{Gsus4}{1}{3/2,3/3,0/0,0/0,1/1,3/4}{}
+  \Chord{Gadd9}{1}{3/3,2/1,0/0,2/2,0/0,3/4}{}
+
+  \RootRow{A♭/G♯}{ля♭ / соль♯}{A flat / G sharp}
+  \Chord{A♭}{4}{4/1,6/3,6/4,5/2,4/0,4/1}{6/1/4}
+  \Chord{A♭m}{4}{4/1,6/3,6/4,4/0,4/0,4/1}{6/1/4}
+  \Chord{A♭7}{4}{4/1,6/3,4/0,5/2,4/0,4/1}{6/1/4}
+  \Chord{A♭m7}{4}{4/1,6/3,4/0,4/0,4/0,4/1}{6/1/4}
+  \Chord{A♭maj7}{4}{4/1,-1/0,5/3,5/4,4/2,-1/0}{}
+  \Chord{A♭sus2}{6}{-1/0,-1/0,6/1,8/2,9/4,6/1}{4/1/6}
+  \Chord{A♭sus4}{4}{4/1,6/2,6/3,6/4,4/0,4/1}{6/1/4}
+  \Chord{A♭add9}{4}{-1/0,-1/0,6/3,5/2,4/1,6/4}{}
+
+  \RootRow{A}{ля}{A natural}
+  \Chord{A}{1}{-1/0,0/0,2/1,2/2,2/3,0/0}{}
+  \Chord{Am}{1}{-1/0,0/0,2/2,2/3,1/1,0/0}{}
+  \Chord{A7}{1}{-1/0,0/0,2/2,0/0,2/3,0/0}{}
+  \Chord{Am7}{1}{-1/0,0/0,2/2,0/0,1/1,0/0}{}
+  \Chord{Amaj7}{1}{-1/0,0/0,2/2,1/1,2/3,0/0}{}
+  \Chord{Asus2}{1}{-1/0,0/0,2/2,2/3,0/0,0/0}{}
+  \Chord{Asus4}{1}{-1/0,0/0,2/1,2/2,3/3,0/0}{}
+  \Chord{Aadd9}{1}{-1/0,0/0,2/1,4/4,2/2,0/0}{}
+
+  \RootRow{B♭/A♯}{си♭ / ля♯}{B flat / A sharp}
+  \Chord{B♭}{1}{-1/0,1/1,3/2,3/3,3/4,1/1}{5/1/1}
+  \Chord{B♭m}{1}{-1/0,1/1,3/3,3/4,2/2,1/1}{5/1/1}
+  \Chord{B♭7}{1}{-1/0,1/1,3/3,1/0,3/4,1/1}{5/1/1}
+  \Chord{B♭m7}{1}{-1/0,1/1,3/3,1/0,2/2,1/1}{5/1/1}
+  \Chord{B♭maj7}{1}{-1/0,1/1,3/3,2/2,3/4,1/1}{5/1/1}
+  \Chord{B♭sus2}{1}{-1/0,1/1,3/3,3/4,1/0,1/1}{5/1/1}
+  \Chord{B♭sus4}{1}{-1/0,1/1,3/2,3/3,4/4,1/1}{5/1/1}
+  \Chord{B♭add9}{5}{6/3,5/1,-1/0,5/2,6/4,-1/0}{}
+
+  \RootRow{B}{си}{B natural}
+  \Chord{B}{1}{-1/0,2/1,4/2,4/3,4/4,2/1}{5/1/2}
+  \Chord{Bm}{1}{-1/0,2/1,4/3,4/4,3/2,2/1}{5/1/2}
+  \Chord{B7}{1}{-1/0,2/1,4/3,2/0,4/4,2/1}{5/1/2}
+  \Chord{Bm7}{1}{-1/0,2/1,4/3,2/0,3/2,2/1}{5/1/2}
+  \Chord{Bmaj7}{1}{-1/0,2/1,4/3,3/2,4/4,2/1}{5/1/2}
+  \Chord{Bsus2}{1}{-1/0,2/1,4/3,4/4,2/0,2/1}{5/1/2}
+  \Chord{Bsus4}{2}{-1/0,2/1,4/2,4/3,5/4,2/1}{5/1/2}
+  \Chord{Badd9}{6}{7/3,6/1,-1/0,6/2,7/4,-1/0}{}
+
+}
+
+\end{document}
