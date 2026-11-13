@@ -18,6 +18,20 @@ by instrument and topic, with each document's PDF and TeX source stored together
   including matching command examples and working language links.
 - Refer to [BUILD.md](BUILD.md) for tool installation and detailed build commands.
 
+## GitHub issues and pull requests
+
+- Before creating an issue, read the relevant local form in
+  [.github/ISSUE_TEMPLATE](.github/ISSUE_TEMPLATE). Use
+  [task.yml](.github/ISSUE_TEMPLATE/task.yml) for tasks and new material, and
+  [bug_report.yml](.github/ISSUE_TEMPLATE/bug_report.yml) for errors.
+- Before creating a pull request, read
+  [pull_request_template.md](.github/pull_request_template.md).
+- Follow the template's fields and section headings when writing the body,
+  including when creating issues or pull requests through a CLI or API.
+- Write issue and pull request titles and descriptions in English by default,
+  unless the user requests another language.
+- Distinguish agreed requirements from proposals and unresolved questions.
+
 ## Build and verification
 
 - Use the project's `just` recipes for standard builds and cleanup.

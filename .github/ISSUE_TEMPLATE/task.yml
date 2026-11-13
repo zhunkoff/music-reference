@@ -1,0 +1,55 @@
+name: Task or new material
+description: Plan new reference material, improvements, documentation, or build tooling.
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What problem needs to be solved, and who will use the result?
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and outputs
+      description: >-
+        Describe the material or change and the expected TeX sources, PDFs, or
+        documentation. Identify any decisions that are still proposals.
+    validations:
+      required: true
+  - type: textarea
+    id: musical_conventions
+    attributes:
+      label: Musical conventions and sources
+      description: >-
+        For musical material, specify the relevant instrument, tuning, note or
+        octave range, notation, temperament, reference pitch, and rounding.
+        Include reference sources where available.
+  - type: textarea
+    id: languages_variants
+    attributes:
+      label: Languages and variants
+      description: >-
+        Specify the languages and relevant document variants, such as diagrams
+        with or without finger numbers. English is the default language.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: >-
+        List verifiable outcomes and relevant checks for musical accuracy, PDF
+        layout and printing, or documentation. For design tasks, list the
+        decisions that need to be made.
+      placeholder: "- [ ] Verifiable outcome"
+    validations:
+      required: true
+  - type: textarea
+    id: questions
+    attributes:
+      label: Open questions
+      description: Which decisions need to be made before implementation?
+  - type: textarea
+    id: context
+    attributes:
+      label: Context and related issues
+      description: Include usage examples, related issues, dependencies, or constraints.

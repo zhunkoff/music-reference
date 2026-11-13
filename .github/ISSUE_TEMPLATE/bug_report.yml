@@ -1,0 +1,61 @@
+name: Bug report
+description: Report an error in musical content, PDF layout, translation, or the build process.
+body:
+  - type: input
+    id: document
+    attributes:
+      label: Affected document
+      description: >-
+        Give the file path or link, including the language and PDF variant where
+        relevant.
+      placeholder: guitar/chords/6-string-standard-tuning.en.pdf
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Release tag or commit SHA, if known.
+  - type: input
+    id: location
+    attributes:
+      label: Location in the document
+      description: Identify the page, chord, note, table entry, or section involved.
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      description: >-
+        Describe the correct content, appearance, or build result. Include a
+        musical reference or calculation if available.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: >-
+        Describe the error. Include a relevant PDF excerpt, screenshot, or error
+        message if helpful.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction details
+      description: >-
+        For build problems, provide the command and relevant log output. For
+        display or printing problems, describe how the PDF was opened or printed,
+        including scale and paper size.
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: >-
+        Where relevant, include the operating system, TeX distribution, LuaLaTeX,
+        latexmk, and just versions, or the PDF viewer and printer settings.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Include related issues or other information that may help investigate the problem.
