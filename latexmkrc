@@ -4,6 +4,7 @@
 # Add each document's main TeX source here, relative to the repository root.
 @default_files = (
     'guitar/chords/6-string-standard-tuning.tex',
+    'theory/pitch/note-frequencies.tex',
 );
 
 # Compile in each document's directory using LuaLaTeX.

@@ -1,0 +1,430 @@
+% Copyright (c) 2026 Sergey Zhunkov.
+% SPDX-License-Identifier: CC-BY-4.0
+% https://creativecommons.org/licenses/by/4.0/
+%
+% Build both languages with just build-all from the repository root.
+% English is the default; set \ChartLanguage to ru before loading this source.
+% \ShowFingerNumbers is intentionally unused: this chart has no fingerings.
+\documentclass[a4paper,landscape]{article}
+\usepackage[margin=0pt]{geometry}
+\usepackage{fontspec}
+\usepackage{babel}
+\usepackage{etoolbox}
+\usepackage{tikz}
+\usetikzlibrary{babel}
+\usepackage{luacode}
+\usepackage{hyperref}
+
+\providecommand{\ChartLanguage}{en}
+\newif\ifChartRussian
+\ifdefstring{\ChartLanguage}{ru}{%
+  \ChartRussiantrue
+  \babelprovide[import,main]{russian}
+  \babelprovide[import]{english}
+}{%
+  \ifdefstring{\ChartLanguage}{en}{%
+    \ChartRussianfalse
+    \babelprovide[import,main]{english}
+    \babelprovide[import]{russian}
+  }{%
+    \PackageError{note-frequency-chart}{Unsupported ChartLanguage '\ChartLanguage'}
+      {Set ChartLanguage to ru or en.}
+  }%
+}
+\setmainfont{DejaVuSansCondensed.ttf}[
+  BoldFont=DejaVuSansCondensed-Bold.ttf,
+  Ligatures=NoCommon,
+  RawFeature={-kern,-clig}
+]
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\newcommand{\Localize}[2]{\ifChartRussian#1\else#2\fi}
+\newcommand{\ChartTitle}{\Localize{Частоты нот}{Note frequencies}}
+\hypersetup{
+  pdftitle={\ChartTitle},
+  pdfauthor={Sergey Zhunkov},
+  pdfsubject={\Localize{Частоты основных тонов C0-B10, A4 = 440 Гц}
+    {Fundamental frequencies C0-B10, A4 = 440 Hz}},
+  pdfkeywords={note frequencies, equal temperament, A4, CC BY 4.0},
+  colorlinks=true,urlcolor=ChartAccent
+}
+\ifChartRussian
+  \hypersetup{pdflang={ru-RU}}
+  \newcommand{\ChartDecimal}{,}
+\else
+  \hypersetup{pdflang={en}}
+  \newcommand{\ChartDecimal}{.}
+\fi
+
+% Match the typography, palette, margins, and drawing units of the guitar chart.
+\definecolor{ChartInk}{RGB}{23,43,50}
+\definecolor{ChartMuted}{RGB}{70,91,99}
+\definecolor{ChartAccent}{RGB}{25,87,85}
+\definecolor{ChartRule}{RGB}{197,208,209}
+\definecolor{ChartHeader}{RGB}{231,239,239}
+\definecolor{ChartStripe}{RGB}{244,247,247}
+\definecolor{ChartHearing}{RGB}{221,237,234}
+
+\newcommand{\ChartText}[6][base west]{%
+  \node[anchor=#1,inner sep=0pt,outer sep=0pt,text=#5,
+    font=\fontsize{#4bp}{#4bp}\selectfont] at ({#2},{#3}) {#6};%
+}
+\newcommand{\NoteLabel}[2]{%
+  \ChartText{39}{474.3-20.5*#1}{10}{ChartAccent}{\bfseries#2}%
+}
+
+% A small top-view grand-piano silhouette, drawn as vectors for reliable print.
+\newcommand{\PianoMark}[2]{%
+  \begin{scope}[shift={({#1},{#2})},scale=.85]
+    \fill[ChartAccent]
+      (0,3) -- (0,10)
+      .. controls (0,12) and (3.7,12) .. (4.2,10.5)
+      .. controls (4.9,8.3) and (5.8,8.1) .. (7.4,7.3)
+      .. controls (10.5,5.7) and (11,5) .. (11,3) -- cycle;
+    \draw[ChartAccent,fill=white,line width=.45bp] (0,0) rectangle (11,3);
+    \foreach \key in {1,...,6} {
+      \draw[ChartAccent,line width=.3bp] ({11*\key/7},0) -- ({11*\key/7},3);
+    }
+    \foreach \key in {1,2,4,5,6} {
+      \fill[ChartAccent] ({11*\key/7-.4},1.3) rectangle ({11*\key/7+.4},3);
+    }
+  \end{scope}%
+}
+
+% A shared solid-body silhouette; the bass version adds a readable subscript.
+\newcommand{\ElectricShape}{%
+  \fill[ChartAccent]
+    (3,.7) .. controls (.1,.7) and (-.5,2.3) .. (.6,4.3)
+    -- (.8,7.6) .. controls (1.5,7.4) and (1.5,5.4) .. (2.5,5.6)
+    -- (3.6,5.6) .. controls (4.5,5.6) and (4.4,7) .. (5.4,7.4)
+    -- (5.4,4.9) .. controls (7.2,3) and (6.5,.7) .. (3,.7) -- cycle;
+  \fill[ChartAccent] (2.5,5.5) rectangle (3.6,12.1);
+  \fill[ChartAccent] (2.4,12) -- (3.6,14.5) -- (4.1,14.5) -- (3.7,12) -- cycle;
+  \draw[white,line width=.45bp] (2.1,2.8) -- (4.2,2.8) (2.3,4.2) -- (4,4.2);
+}
+% Optional scale, x, y, instrument key. Geometry is vector-only, not font icons.
+\newcommand{\InstrumentGlyph}[4][1]{%
+  \begin{scope}[shift={({#2},{#3})},scale=#1]
+    \ifcase#4\relax
+    \or % Classical guitar: rounded bouts and a round sound hole.
+      \fill[ChartAccent]
+        (3.25,.8) .. controls (0,.8) and (-.2,3.3) .. (1.8,4.6)
+        .. controls (-.3,6.2) and (1.1,8.2) .. (2.5,8.2)
+        -- (4,8.2) .. controls (5.4,8.2) and (6.8,6.2) .. (4.7,4.6)
+        .. controls (6.7,3.3) and (6.5,.8) .. (3.25,.8) -- cycle;
+      \fill[ChartAccent] (2.6,7.1) rectangle (3.9,12.3);
+      \fill[ChartAccent,rounded corners=.25bp] (2.1,12.1) rectangle (4.4,14.5);
+      \fill[white] (3.25,5.8) circle[radius=.85bp];
+      \draw[white,line width=.45bp] (2,2.7) -- (4.5,2.7);
+    \or % Electric guitar.
+      \ElectricShape
+    \or % Bass guitar: same visual family, explicitly labelled in both languages.
+      \ElectricShape
+      \ChartText{6.7}{-1.1}{5.8}{ChartAccent}{bass}
+    \or % Double bass: narrow bowed-string body, f-holes, scroll and endpin.
+      \begin{scope}[xscale=.75]
+        \draw[ChartAccent,line width=.6bp,line cap=round] (3,0) -- (3,1.8);
+        \fill[ChartAccent]
+          (3,1.6) .. controls (0,1.6) and (-.2,3.7) .. (1.4,4.8)
+          .. controls (2.1,5.4) and (1.3,6.2) .. (.8,7)
+          .. controls (.5,8.3) and (1.6,9.4) .. (2.4,9.6)
+          -- (3.6,9.6) .. controls (4.4,9.4) and (5.5,8.3) .. (5.2,7)
+          .. controls (4.7,6.2) and (3.9,5.4) .. (4.6,4.8)
+          .. controls (6.2,3.7) and (6,1.6) .. (3,1.6) -- cycle;
+        \fill[ChartAccent] (2.5,9.2) rectangle (3.5,13.7);
+        \fill[ChartAccent] (3,14) circle[radius=.5bp];
+        \draw[white,line width=.35bp]
+          (1.8,4.3) .. controls (2.3,5.2) and (1.6,5.8) .. (2.1,6.3)
+          (4.1,4.3) .. controls (3.6,5.2) and (4.3,5.8) .. (3.8,6.3);
+      \end{scope}
+    \or % Prima balalaika: triangular body.
+      \fill[ChartAccent,rounded corners=.3bp] (0,1) -- (7.5,1) -- (3.75,8.3) -- cycle;
+      \fill[ChartAccent] (3.15,7.3) rectangle (4.35,12.7);
+      \fill[ChartAccent] (2.7,12.5) rectangle (4.8,14.5);
+      \fill[white] (3.75,5.1) circle[radius=.7bp];
+      \draw[white,line width=.45bp] (2.7,2.5) -- (4.8,2.5);
+    \fi
+  \end{scope}%
+}
+\newcommand{\InstrumentMarks}[3]{%
+  \foreach \instrument [count=\markindex from 0] in {#3} {
+    \pgfmathsetmacro{\MarkX}{134+62*#1+10*\markindex}%
+    \pgfmathsetmacro{\MarkY}{470.5-20.5*#2}%
+    \ifnum\instrument=4
+      \ifnum\markindex>0
+        % Make room for the bass subscript and stagger the shared double-bass mark.
+        \pgfmathsetmacro{\MarkX}{151.5+62*#1}%
+        \pgfmathsetmacro{\MarkY}{472.5-20.5*#2}%
+      \fi
+    \fi
+    \InstrumentGlyph{\MarkX}{\MarkY}{\instrument}%
+  }
+}
+% Instrument key, Russian/English configuration, low/high notes, source.
+\newcommand{\InstrumentRow}[6]{%
+  \InstrumentGlyph[.8]{565}{182-13*(#1-1)}{#1}%
+  \ChartText{590}{185-13*(#1-1)}{8.1}{ChartMuted}
+    {\Localize{#2}{#3}: #4-#5 [#6]}%
+}
+
+% Octave, pitch class (C=0), rounded display value, range status (-1, 0, 1).
+% Range status is calculated in Lua from the unrounded frequency.
+\newcommand{\FrequencyCell}[4]{%
+  \ifnum#4=0
+    \fill[ChartHearing] ({132+62*#1},{467.5-20.5*#2})
+      rectangle ({194+62*#1},{488-20.5*#2});
+  \fi
+  \def\CellWeight{}%
+  \ifnum#1=4
+    \ifnum#2=9
+      \def\CellWeight{\bfseries}%
+      \draw[ChartAccent,line width=1bp]
+        ({133.5+62*#1},{469-20.5*#2})
+        rectangle ({192.5+62*#1},{486.5-20.5*#2});
+    \fi
+  \fi
+  \ChartText[base east]{188+62*#1}{474.3-20.5*#2}{9.5}{ChartInk}
+    {\CellWeight#3}%
+  % The two endpoints of a standard 88-key keyboard: A0 and C8, inclusive.
+  \ifnum#1=0
+    \ifnum#2=9
+      \PianoMark{136+62*#1}{471.2-20.5*#2}%
+    \fi
+  \fi
+  \ifnum#1=8
+    \ifnum#2=0
+      \PianoMark{136+62*#1}{471.2-20.5*#2}%
+    \fi
+  \fi
+  \ifnum#4=-1
+    \ChartText{136+62*#1}{474.3-20.5*#2}{8.5}{ChartMuted}{↓}%
+  \fi
+  \ifnum#4=1
+    \ChartText{136+62*#1}{474.3-20.5*#2}{8.5}{ChartMuted}{↑}%
+  \fi
+}
+
+\begin{luacode*}
+-- One data model and calculation for both language versions.
+local labels = {
+  "C", "C♯/D♭", "D", "D♯/E♭", "E", "F",
+  "F♯/G♭", "G", "G♯/A♭", "A", "A♯/B♭", "B"
+}
+local function frequency(octave, pitch)
+  local n = 12 * (octave - 4) + pitch - 9
+  return 440 * 2 ^ (n / 12)
+end
+local function display(value)
+  local integer, fraction = string.format("%.2f", value):match("(%d+)%.(%d+)")
+  -- At most five integer digits in C0-B10; separate thousands with a thin space.
+  integer = integer:gsub("^(%d+)(%d%d%d)$", "%1\\,%2")
+  return integer .. "\\ChartDecimal{}" .. fraction
+end
+-- MIDI indices are used only to identify endpoints, not to restrict the chart.
+-- These definitions drive both the cell markers and the bilingual range legend.
+local instruments = {
+  {low=40, high=83, ru="Классическая гитара, 19 ладов",
+   en="Classical guitar, 19 frets", source=6},
+  {low=40, high=88, ru="Электрогитара, 24 лада",
+   en="Electric guitar, 24 frets", source=7},
+  {low=28, high=67, ru="Бас, 4 струны, 24 лада",
+   en="Bass guitar, 4 strings, 24 frets", source=8},
+  {low=28, high=67, ru="Контрабас, 4 струны",
+   en="Double bass, 4 strings", suffix="*", source=9},
+  {low=64, high=93, ru="Балалайка-прима, 24 лада",
+   en="Prima balalaika, 24 frets", source=10}
+}
+local function note_name(midi)
+  return labels[midi % 12 + 1] .. tostring(math.floor(midi / 12) - 1)
+end
+function DrawInstrumentLegend()
+  for number, instrument in ipairs(instruments) do
+    tex.sprint(string.format("\\InstrumentRow{%d}{%s}{%s}{%s}{%s}{%d}",
+      number, instrument.ru, instrument.en, note_name(instrument.low),
+      note_name(instrument.high) .. (instrument.suffix or ""), instrument.source))
+  end
+end
+function DrawNoteFrequencies()
+  for index, label in ipairs(labels) do
+    local pitch = index - 1
+    tex.sprint(string.format("\\NoteLabel{%d}{%s}", pitch, label))
+    for octave = 0, 10 do
+      local f = frequency(octave, pitch)
+      local status = 0
+      if f < 20 then status = -1 elseif f > 20000 then status = 1 end
+      tex.sprint(string.format("\\FrequencyCell{%d}{%d}{%s}{%d}",
+        octave, pitch, display(f), status))
+      local midi = 12 * (octave + 1) + pitch
+      local marks = {}
+      for number, instrument in ipairs(instruments) do
+        if midi == instrument.low or midi == instrument.high then
+          marks[#marks + 1] = tostring(number)
+        end
+      end
+      if #marks > 0 then
+        tex.sprint(string.format("\\InstrumentMarks{%d}{%d}{%s}",
+          octave, pitch, table.concat(marks, ",")))
+      end
+    end
+  end
+end
+\end{luacode*}
+
+\newcommand{\ChartFrame}{%
+  \ChartText{28}{553}{30}{ChartInk}{\bfseries\ChartTitle}
+  \ChartText[base east]{813.8898}{551}{18}{ChartAccent}{\bfseries A4 = 440 \Localize{Гц}{Hz}}
+  \ChartText{29}{531}{11}{ChartMuted}{\Localize
+    {Равномерная темперация: 12 полутонов · Частота основного тона, Гц · C0-B10}
+    {12-tone equal temperament · Fundamental frequency, Hz · C0-B10}}
+  \fill[ChartHeader,rounded corners=4bp] (28,488) rectangle (814,516);
+  \ChartText{39}{499}{9.5}{ChartAccent}{\bfseries\Localize{Нота / октава}{Note / octave}}
+  \foreach \octave in {0,...,10} {
+    \ChartText[base]{163+62*\octave}{499}{10}{ChartAccent}{\bfseries\octave}
+  }
+  \foreach \row in {0,...,11} {
+    \fill[ChartStripe] (28,{467.5-20.5*\row}) rectangle (132,{488-20.5*\row});
+  }
+  \directlua{DrawNoteFrequencies()}
+  \foreach \row in {0,...,12} {
+    \draw[ChartRule,line width=.45bp] (28,{488-20.5*\row}) -- (814,{488-20.5*\row});
+  }
+  \foreach \column in {0,...,11} {
+    \draw[ChartRule,line width=.45bp] ({132+62*\column},242) -- ({132+62*\column},488);
+  }
+  % The transitions D-sharp -> E occur at both ends of the hearing interval.
+  \draw[ChartAccent,line width=1.2bp] (132,406) -- (194,406);
+  \draw[ChartAccent,line width=1.2bp] (752,406) -- (814,406);
+}
+
+\newcommand{\ChartNotes}{%
+  \fill[ChartHearing,draw=ChartRule,line width=.45bp] (28,219) rectangle (41,230);
+  \ChartText{48}{221}{9.2}{ChartInk}{\Localize
+    {20 Гц ≤ f ≤ 20 кГц}{20 Hz ≤ f ≤ 20 kHz}}
+  \ChartText{211}{221}{9.2}{ChartInk}{↓\ \Localize{ниже 20 Гц}{below 20 Hz}}
+  \ChartText{337}{221}{9.2}{ChartInk}{↑\ \Localize{выше 20 кГц}{above 20 kHz}}
+  \draw[ChartAccent,line width=1bp] (465,219) rectangle (478,230);
+  \ChartText{485}{221}{9.2}{ChartInk}{\Localize{опорная A4}{reference A4}}
+  \PianoMark{564}{218}
+  \ChartText{583}{221}{9.2}{ChartInk}{\Localize
+    {крайние ноты рояля: A0-C8 (88 клавиш) [5]}
+    {piano endpoints: A0-C8 (88 keys) [5]}}
+
+  % Three compact columns keep the frequency table and its type size unchanged.
+  \ChartText{28}{201}{10}{ChartAccent}{\bfseries\Localize{Как читать}{How to read}}
+  \ChartText{28}{185}{8.1}{ChartMuted}{\Localize
+    {Нота + номер столбца: C + 4 = C4.}
+    {Row name + column number: C + 4 = C4.}}
+  \ChartText{28}{172}{8.1}{ChartMuted}{\Localize
+    {Международные C-D-E-F-G-A-B; B = си.}
+    {International names C-D-E-F-G-A-B.}}
+  \ChartText{28}{159}{8.1}{ChartMuted}{\Localize
+    {B♭ = си-бемоль. C4 - до первой октавы.}
+    {Octave numbers change at C; C4 is middle C [2].}}
+  \ifChartRussian
+    \ChartText{28}{146}{8.1}{ChartMuted}
+      {Октавы [4]: 0 - субконтроктава; 1 - контроктава;}
+    \ChartText{28}{133}{8.1}{ChartMuted}
+      {2 - большая; 3 - малая; 4 - первая; 5 - вторая;}
+    \ChartText{28}{120}{8.1}{ChartMuted}
+      {6 - третья; 7 - четвёртая; 8 - пятая.}
+    \ChartText{28}{107}{8.1}{ChartMuted}
+      {Для 9-10 используем научный номер.}
+    \ChartText{28}{94}{8.1}{ChartMuted}
+      {Силуэты - крайние ноты; струны от низких к высоким.}
+    \ChartText{28}{81}{8.1}{ChartMuted}
+      {Без бендов и флажолетов.}
+  \else
+    \ChartText{28}{146}{8.1}{ChartMuted}
+      {Enharmonic names, e.g. C♯/D♭, share a frequency.}
+    \ChartText{28}{133}{8.1}{ChartMuted}
+      {All values are sounding fundamental frequencies.}
+    \ChartText{28}{120}{8.1}{ChartMuted}
+      {Instrument silhouettes mark range endpoints.}
+    \ChartText{28}{107}{8.1}{ChartMuted}
+      {Tunings list the strings from low to high.}
+    \ChartText{28}{94}{8.1}{ChartMuted}
+      {Fretted ranges exclude bends and harmonics.}
+    \ChartText{28}{81}{8.1}{ChartMuted}
+      {Double-bass ranges exclude harmonics.}
+  \fi
+
+  \ChartText{302}{201}{10}{ChartAccent}{\bfseries\Localize
+    {Расчёт и диапазон слуха}{Calculation and hearing}}
+  \ChartText{302}{185}{8.5}{ChartInk}
+    {f = 440 × 2\raisebox{.65ex}{\fontsize{6.2bp}{6.2bp}\selectfont n/12}\ \Localize{Гц}{Hz}.}
+  \ChartText{302}{172}{8.1}{ChartMuted}{n = 12(o - 4) + p - 9.}
+  \ChartText{302}{159}{8.1}{ChartMuted}{\Localize
+    {n - число полутонов от A4 со знаком [1, 2].}
+    {n = signed semitones from A4 [1, 2].}}
+  \ChartText{302}{146}{8.1}{ChartMuted}{\Localize
+    {o - номер октавы; p = 0 (C), ..., 11 (B).}
+    {o = octave number; p = 0 (C), ..., 11 (B).}}
+  \ChartText{302}{133}{8.1}{ChartMuted}{\Localize
+    {Показ: 2 знака; границы - до округления.}
+    {Two decimals; range checks precede rounding.}}
+  \ChartText{302}{120}{8.1}{ChartMuted}{\Localize
+    {Октава: отношение 2:1; C♯/D♭ - одна частота.}
+    {An octave has a 2:1 frequency ratio.}}
+  \ChartText{302}{107}{8.1}{ChartMuted}{\Localize
+    {20 Гц-20 кГц: молодой человек, нормальный слух [3].}
+    {20 Hz-20 kHz: young listener, normal hearing [3].}}
+  \ChartText{302}{94}{8.1}{ChartMuted}{\Localize
+    {Пределы зависят от слушателя и условий.}
+    {Actual limits vary with the listener and conditions.}}
+  \ChartText{302}{81}{8.1}{ChartMuted}{\Localize
+    {Линии в крайних столбцах - 20 Гц и 20 кГц.}
+    {Outer-column rules mark 20 Hz and 20 kHz.}}
+
+  \ChartText{565}{201}{10}{ChartAccent}{\bfseries\Localize
+    {Границы инструментов}{Instrument endpoints}}
+  \directlua{DrawInstrumentLegend()}
+  \ChartText{565}{119}{7.8}{ChartMuted}{\Localize
+    {Гитары: E2-A2-D3-G3-B3-E4.}
+    {Guitars: E2-A2-D3-G3-B3-E4.}}
+  \ChartText{565}{108}{7.8}{ChartMuted}{\Localize
+    {Бас / контрабас: E1-A1-D2-G2.}
+    {Bass / double bass: E1-A1-D2-G2.}}
+  \ChartText{565}{97}{7.8}{ChartMuted}{\Localize
+    {Балалайка-прима: E4-E4-A4.}
+    {Prima balalaika: E4-E4-A4.}}
+  \ChartText{565}{86}{7.8}{ChartMuted}{\Localize
+    {* G4 - условная верхняя граница контрабаса.}
+    {* G4 is a reference upper bound for double bass.}}
+
+  \ChartText{28}{69}{8}{ChartAccent}{\bfseries\Localize{Источники}{Sources}}
+  \ChartText{105}{69}{7.4}{ChartMuted}
+    {\href{https://www.iso.org/standard/3601.html}{[1] ISO 16:1975}}
+  \ChartText{250}{69}{7.4}{ChartMuted}
+    {\href{https://www.phys.unsw.edu.au/jw/notes.html}{[2] UNSW - \Localize{ноты и частоты}{notes and frequencies}}}
+  \ChartText{395}{69}{7.4}{ChartMuted}
+    {\href{https://www.canada.ca/en/health-canada/services/health-risks-safety/radiation/everyday-things-emit-radiation/wind-turbine-noise/primer-noise-environmental-workplace-health.html}{[3] Health Canada - \Localize{слух}{hearing}}}
+  \ChartText{540}{69}{7.4}{ChartMuted}
+    {\href{https://textbook.tou.edu.kz/books/191/1.html}{[4] Toraighyrov - \Localize{октавы}{octaves}}}
+  \ChartText{685}{69}{7.4}{ChartMuted}
+    {\href{https://es.yamaha.com/es/musical-instruments/pianos/explore/musical-instrument-guide/piano/trivia/trivia007.html}{[5] Yamaha - \Localize{88 клавиш}{88 keys}}}
+  \ChartText{105}{57}{7.4}{ChartMuted}
+    {\href{https://www.yamaha.com/en/musical_instrument_guide/classical_guitar/play/play003.html}{[6] Yamaha - \Localize{классич. гитара}{classical guitar}}}
+  \ChartText{250}{57}{7.4}{ChartMuted}
+    {\href{https://www.ibanez.com/usa/products/detail/s721rb_1p_01.html}{[7] Ibanez - \Localize{электрогитара}{electric guitar}}}
+  \ChartText{395}{57}{7.4}{ChartMuted}
+    {\href{https://www.ibanez.com/usa/products/detail/mdm1600_1p_01.html}{[8] Ibanez - \Localize{бас}{bass guitar}}}
+  \ChartText{540}{57}{7.4}{ChartMuted}
+    {\href{https://odl.vsl.co.at/cms-vsl/legacy-manuals/collections/vi_orchestralstrings_manual_v3.pdf}{[9] VSL - \Localize{контрабас}{double bass}}}
+  \ChartText{685}{57}{7.4}{ChartMuted}
+    {\href{https://ebooks.kemgik.ru/protected/Musik/2019/KNYASEV3.pdf}{[10] \Localize{КемГИК - балалайка}{KemGIK - balalaika}}}
+  \draw[ChartRule,line width=.55bp] (28,45) -- (814,45);
+  \ChartText{28}{29}{8.5}{ChartMuted}
+    {© 2026 \href{https://github.com/zhunkoff/music-reference}{Sergey Zhunkov} · \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0}}
+}
+
+\begin{document}
+\AddToHookNext{shipout/background}{%
+  \put(0,-\paperheight){%
+    \begin{tikzpicture}[overlay,x=1bp,y=1bp]
+      \ChartFrame
+      \ChartNotes
+    \end{tikzpicture}%
+  }%
+}
+\null\clearpage
+\end{document}
