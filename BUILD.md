@@ -10,6 +10,7 @@ documents from their TeX sources. Return to the [project overview](README.md).
 Project commands are defined in `justfile` and use `latexmk` to run LuaLaTeX as many
 times as needed. The guitar chord chart uses TikZ, Babel with English and Russian
 language data, and DejaVu Sans Condensed in regular and bold weights.
+Use `latexmk` 4.84 or newer for the project's cleanup hook.
 [latexmk documentation](https://www.cantab.net/users/johncollins/latexmk/index.html).
 
 | Component | TeX Live package |
@@ -290,6 +291,9 @@ For a print check, select A4 landscape and 100% / actual size.
 LaTeX and `latexmk` also create `.aux`, `.log`, `.out`, `.fls`, and `.fdb_latexmk`
 files with the same job name. The `.log` file records errors and warnings. These
 auxiliary files are covered by `.gitignore` and removed by the cleanup command.
+Cleanup also removes temporary recorder files named `lualatex<digits>.fls`
+left by failed engine startup, only in registered documents' directories.
+PDFs and TeX sources are preserved.
 
 ```sh
 just clean

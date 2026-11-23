@@ -11,3 +11,13 @@
 $do_cd = 1;
 $pdf_mode = 4;
 $lualatex_default_switches = '-interaction=nonstopmode -halt-on-error';
+
+# A failed early startup can leave a recorder file named after the engine PID.
+# With $do_cd, the cleanup hook runs in each registered document's directory.
+add_hook('cleanup', sub {
+    for my $file (glob('lualatex[0-9]*.fls')) {
+        next unless $file =~ /\Alualatex[0-9]+\.fls\z/ && -f $file;
+        unlink $file or die "Cannot remove temporary recorder '$file': $!\n";
+    }
+    return 0;
+});
