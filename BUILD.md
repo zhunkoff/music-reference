@@ -16,6 +16,7 @@ language data, and DejaVu Sans Condensed in regular and bold weights.
 | --- | --- |
 | Build automation | `latexmk` |
 | LuaLaTeX engine and Lua font loading | `luatex`, `luaotfload` |
+| Embedded Lua calculations in the note-frequency chart | `luacode` |
 | TikZ diagrams | `pgf` |
 | Language support | `babel`, `babel-english`, `babel-russian` |
 | English and Russian hyphenation | `hyphen-english`, `hyphen-russian` |
@@ -197,6 +198,7 @@ just --version
 latexmk -v
 lualatex --version
 kpsewhich fontspec.sty
+kpsewhich luacode.sty
 kpsewhich babel.sty
 kpsewhich babel-english.tex
 kpsewhich babel-russian.tex
@@ -245,6 +247,19 @@ the resulting files appear in `guitar/chords`.
 | `6-string-standard-tuning.en-dots.pdf` | English chart without finger numbers |
 | `6-string-standard-tuning.ru-dots.pdf` | Russian chart without finger numbers |
 
+The note-frequency chart is written to `theory/pitch`:
+
+| File | Contents |
+| --- | --- |
+| `note-frequencies.en.pdf` | English note-frequency chart |
+| `note-frequencies.ru.pdf` | Russian note-frequency chart |
+
+Each language version is one landscape A4 page covering C0-B10, with the
+conventional 20 Hz-20 kHz hearing interval highlighted. Select A4 landscape and
+100% / actual size when checking print legibility and the black-and-white legend.
+Check the shared endpoint markers and the legend's instrument configurations,
+tunings, and conditional double-bass upper bound as well.
+
 Finger numbers are shown by default. The optional second argument of `just build`
 is `true` or `false`; `just build-all` accepts the same argument after its name.
 For example:
@@ -259,12 +274,17 @@ Only finger numbers inside dots, including dots on barres, are hidden. Dots,
 barres, fret numbers, and open/muted string markings stay in place. The legend
 describes plain dots instead of finger numbers.
 
-For a direct LuaLaTeX build, define `\ShowFingerNumbers` as `false` before loading
-the source. Its default is `true`. Invalid language or finger-number values stop
-the build with an error.
+The note-frequency chart has no finger numbers. These commands also create
+`note-frequencies.en-dots.pdf` and `note-frequencies.ru-dots.pdf` with unchanged
+chart content; those duplicate variants do not need to be published.
 
-Each PDF contains two landscape A4 pages and 96 chord diagrams in total. Open the
-PDF in a viewer and check the language, symbols, finger numbers, and page layout.
+For a direct LuaLaTeX build of the guitar chart, define `\ShowFingerNumbers` as
+`false` before loading the source. Its default is `true`. Invalid language or
+finger-number values stop the build with an error.
+
+Each guitar PDF contains two landscape A4 pages and 96 chord diagrams in total.
+Open the PDF in a viewer and check the language, symbols, finger numbers, and
+page layout.
 For a print check, select A4 landscape and 100% / actual size.
 
 LaTeX and `latexmk` also create `.aux`, `.log`, `.out`, `.fls`, and `.fdb_latexmk`
@@ -275,7 +295,7 @@ auxiliary files are covered by `.gitignore` and removed by the cleanup command.
 just clean
 ```
 
-The chart uses fixed 6.8-point finger numbers with thicker strokes for print
+The guitar chart uses fixed 6.8-point finger numbers with thicker strokes for print
 readability. Font size and weight are part of the document's layout and do not
 require build parameters.
 
@@ -313,6 +333,6 @@ distribution's package manager. Upstream TeX Live installations use `tlmgr`.
 The English and Russian builds with and without finger numbers, incremental
 builds, and cleanup have been checked on macOS 26.7.1 (Apple Silicon) with
 LuaHBTeX 1.21.0 from TeX Live
-2025, `latexmk` 4.86a, and `just` 1.21.0 and 1.59.0. Both language versions contain
-two pages. Windows and Linux installation instructions were checked against the
-supplier documentation. Execution on those platforms remains to be verified.
+2025, `latexmk` 4.86a, and `just` 1.21.0 and 1.59.0. Both guitar language versions
+contain two pages. Windows and Linux installation instructions were checked
+against the supplier documentation. Execution on those platforms remains to be verified.
