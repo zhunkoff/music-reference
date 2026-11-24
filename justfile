@@ -5,11 +5,11 @@
 set windows-shell := ["powershell.exe", "-NoLogo", "-NoProfile", "-Command"]
 
 # Build in English (default) or Russian; set fingers to false for plain dots.
-build language="en" fingers="true": (_build-documents language fingers) (build-fretboard language "notes")
+build language="en" fingers="true": (_build-documents language fingers) (build-fretboard language "notes") (build-intervals language)
 
 _build-documents language fingers:
     latexmk \
-        -e '@default_files = grep { $_ ne $fretboard_source } @default_files;' \
+        -e '@default_files = grep { $_ ne $fretboard_source && $_ ne $intervals_source } @default_files;' \
         '-jobname=%A.{{ if language =~ "^(en|ru)$" { language } else { error("Language must be en or ru") } }}{{ if fingers == "true" { "" } else if fingers == "false" { "-dots" } else { error("Finger numbers must be true or false") } }}' \
         '-usepretex={{ '\def\ChartLanguage{' + language + '}\def\ShowFingerNumbers{' + fingers + '}' }}'
 
@@ -19,6 +19,13 @@ build-fretboard language="en" labels="notes":
         -e '@default_files = ($fretboard_source);' \
         '-jobname=%A.{{ if language =~ "^(en|ru)$" { language } else { error("Language must be en or ru") } }}{{ if labels == "notes" { "" } else if labels == "octaves" { "-octaves" } else { error("Fretboard labels must be notes or octaves") } }}' \
         '-usepretex={{ '\def\ChartLanguage{' + language + '}\def\FretboardLabels{' + labels + '}' }}'
+
+# Build the interval reference in English (default) or Russian.
+build-intervals language="en":
+    latexmk \
+        -e '@default_files = ($intervals_source);' \
+        '-jobname=%A.{{ if language =~ "^(en|ru)$" { language } else { error("Language must be en or ru") } }}' \
+        '-usepretex={{ '\def\ChartLanguage{' + language + '}' }}'
 
 # Build every registered document in both languages and all four fretboard PDFs.
 build-all fingers="true": (build "en" fingers) (build "ru" fingers) (build-fretboard "en" "octaves") (build-fretboard "ru" "octaves")

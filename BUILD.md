@@ -232,6 +232,7 @@ just build-all
 | `just build ru false` | Build Russian documents without finger numbers |
 | `just build-all false` | Build both languages without finger numbers, including all four fretboard PDFs |
 | `just build-fretboard en octaves` | Build only the English fretboard map with octave numbers |
+| `just build-intervals en` | Build only the English interval reference |
 | `just clean` | Remove auxiliary files for registered documents |
 | `just --list` | List available commands |
 
@@ -317,6 +318,32 @@ and `\FretboardLabels` before loading the source. Use `notes` or `octaves` for
 the labels. In a print check, use A4 landscape and 100% / actual size in both
 color and grayscale. Check all fret labels and accidentals, the nut line
 after column 0, and the outline around fret 12.
+
+### Musical intervals
+
+The interval reference in `theory/intervals` uses two landscape A4 pages per
+language.
+
+| File | Contents |
+| --- | --- |
+| `intervals.en.pdf` | English interval reference |
+| `intervals.ru.pdf` | Russian interval reference |
+
+`just build-all` builds both PDFs. `just build` and `just build ru` build the
+selected language. To build only the reference, use:
+
+```sh
+just build-intervals en
+just build-intervals ru
+```
+
+The default is `en`. For direct LuaLaTeX builds, set `\ChartLanguage` to `en`
+or `ru` before loading the source. Each language has one PDF regardless of the
+chord chart's finger-number setting.
+
+For print verification, select A4 landscape and 100% / actual size. Check both
+pages in color and grayscale for legible accidentals and fret labels, and for
+clear starting and target markers.
 
 ### Cleaning build files
 

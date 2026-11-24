@@ -3,10 +3,12 @@
 
 # Add each document's main TeX source here, relative to the repository root.
 $fretboard_source = 'guitar/fretboard/6-string-fretboard.tex';
+$intervals_source = 'theory/intervals/intervals.tex';
 @default_files = (
     'guitar/chords/6-string-standard-tuning.tex',
     'theory/pitch/note-frequencies.tex',
     $fretboard_source,
+    $intervals_source,
 );
 
 # Compile in each document's directory using LuaLaTeX.
