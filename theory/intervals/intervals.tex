@@ -1,0 +1,423 @@
+% Copyright (c) 2026 Sergey Zhunkov.
+% SPDX-License-Identifier: CC-BY-4.0
+% https://creativecommons.org/licenses/by/4.0/
+%
+% From the repository root: just build-intervals en
+% Set \ChartLanguage to en or ru before loading this source. English is the default.
+\documentclass[a4paper,landscape]{article}
+\usepackage[margin=0pt]{geometry}
+\usepackage{fontspec}
+\usepackage{babel}
+\usepackage{etoolbox}
+\usepackage{tikz}
+\usetikzlibrary{babel}
+\usepackage{luacode}
+\usepackage{hyperref}
+
+\providecommand{\ChartLanguage}{en}
+\newif\ifChartRussian
+\ifdefstring{\ChartLanguage}{ru}{%
+  \ChartRussiantrue
+  \babelprovide[import,main]{russian}
+  \babelprovide[import]{english}
+}{%
+  \ifdefstring{\ChartLanguage}{en}{%
+    \babelprovide[import,main]{english}
+    \babelprovide[import]{russian}
+  }{%
+    \PackageError{intervals}{Unsupported ChartLanguage '\ChartLanguage'}
+      {Set ChartLanguage to en or ru.}
+  }%
+}
+
+\setmainfont{DejaVuSansCondensed.ttf}[
+  BoldFont=DejaVuSansCondensed-Bold.ttf,
+  Ligatures=NoCommon,
+  RawFeature={-kern,-clig}
+]
+\pagestyle{empty}
+
+% Match the fretboard map's typography and palette.
+\definecolor{ChartInk}{RGB}{23,43,50}
+\definecolor{ChartMuted}{RGB}{70,91,99}
+\definecolor{ChartAccent}{RGB}{25,87,85}
+\definecolor{ChartRule}{RGB}{197,208,209}
+\definecolor{ChartHeader}{RGB}{231,239,239}
+\definecolor{ChartStripe}{RGB}{244,247,247}
+\definecolor{ChartHighlight}{RGB}{221,237,234}
+
+\newcommand{\Localize}[2]{\ifChartRussian#1\else#2\fi}
+\newcommand{\ChartTitle}{\Localize{Музыкальные интервалы}{Musical intervals}}
+\hypersetup{
+  pdftitle={\ChartTitle},
+  pdfauthor={Sergey Zhunkov},
+  pdfsubject={\Localize{Справочник со схемами для гитары}{Reference with guitar diagrams}},
+  colorlinks=true,
+  urlcolor=ChartAccent
+}
+\ifChartRussian
+  \hypersetup{pdflang={ru-RU}}
+\else
+  \hypersetup{pdflang={en}}
+\fi
+
+% Coordinates and font sizes are in PDF points, measured from the bottom left.
+\newcommand{\ChartText}[6][base west]{%
+  \node[anchor=#1,inner sep=0pt,outer sep=0pt,text=#5,
+    font=\fontsize{#4bp}{#4bp}\selectfont] at ({#2},{#3}) {#6};%
+}
+\newcommand{\GuideText}[4]{%
+  \node[anchor=north west,inner sep=0pt,outer sep=0pt,text=ChartInk,
+    text width=#3bp,align=left,font=\fontsize{11bp}{16bp}\selectfont]
+    at ({#1},{#2}) {#4};%
+}
+\newcommand{\GuideHeading}[3]{%
+  \ChartText{#1}{#2}{13}{ChartAccent}{\bfseries #3}%
+}
+
+\begin{luacode*}
+-- Each row gives a semitone distance and its interval spellings:
+-- abbreviation, diatonic number, English name, Russian name.
+local intervals = {
+  {0, {"P1", 1, "Perfect unison", "Чистая прима"}},
+  {1, {"m2", 2, "Minor second", "Малая секунда"}},
+  {2, {"M2", 2, "Major second", "Большая секунда"}},
+  {3, {"m3", 3, "Minor third", "Малая терция"}},
+  {4, {"M3", 3, "Major third", "Большая терция"}},
+  {5, {"P4", 4, "Perfect fourth", "Чистая кварта"}},
+  {6, {"A4", 4, "Augmented fourth", "Увеличенная кварта"},
+      {"d5", 5, "Diminished fifth", "Уменьшённая квинта"}},
+  {7, {"P5", 5, "Perfect fifth", "Чистая квинта"}},
+  {8, {"m6", 6, "Minor sixth", "Малая секста"}},
+  {9, {"M6", 6, "Major sixth", "Большая секста"}},
+  {10, {"m7", 7, "Minor seventh", "Малая септима"}},
+  {11, {"M7", 7, "Major seventh", "Большая септима"}},
+  {12, {"P8", 8, "Perfect octave", "Чистая октава"}},
+}
+
+local openStrings = {64, 59, 55, 50, 45, 40} -- MIDI pitches, strings 1-6.
+local letters = {"C", "D", "E", "F", "G", "A", "B"}
+local naturalSteps = {0, 2, 4, 5, 7, 9, 11}
+
+local function naturalLetter(pitch)
+  for letter, semitones in ipairs(naturalSteps) do
+    if semitones == pitch % 12 then
+      return letter
+    end
+  end
+  error("Expected a natural note for the diagram's starting pitch")
+end
+
+local function spellPitch(pitch, letter, octave)
+  local naturalPitch = 12 * (octave + 1) + naturalSteps[letter]
+  local alteration = pitch - naturalPitch
+  local sign = alteration < 0 and "♭" or "♯"
+  return letters[letter] .. string.rep(sign, math.abs(alteration)) .. octave
+end
+
+local function naturalName(pitch)
+  return spellPitch(pitch, naturalLetter(pitch), pitch // 12 - 1)
+end
+
+local function intervalTarget(start, intervalNumber, distance)
+  local targetLetter = naturalLetter(start) + intervalNumber - 1
+  local targetOctave = start // 12 - 1 + (targetLetter - 1) // #letters
+  return spellPitch(start + distance, (targetLetter - 1) % #letters + 1, targetOctave)
+end
+
+local function emit(command, ...)
+  tex.sprint("\\" .. command .. "{" .. table.concat({...}, "}{") .. "}")
+end
+
+local function forEachDistance(start, printTarget)
+  for _, row in ipairs(intervals) do
+    local distance = row[1]
+    local abbreviations, targets = {}, {}
+    for index = 2, #row do
+      local spelling = row[index]
+      abbreviations[#abbreviations + 1] = spelling[1]
+      targets[#targets + 1] = intervalTarget(start, spelling[2], distance)
+    end
+    printTarget(distance, table.concat(abbreviations, "/"), table.concat(targets, "/"))
+  end
+end
+
+function PrintIntervalTable()
+  local middleC, tableRow = 60, 0
+  for _, row in ipairs(intervals) do
+    local distance, firstRow = row[1], tableRow + 1
+    for index = 2, #row do
+      local spelling = row[index]
+      tableRow = tableRow + 1
+      emit("IntervalRow", tableRow, spelling[2], spelling[1], spelling[3], spelling[4],
+        distance, intervalTarget(middleC, spelling[2], distance))
+    end
+    if tableRow > firstRow then
+      emit("SharedDistanceFrame", firstRow, tableRow)
+    end
+  end
+end
+
+function PrintOneString()
+  local startFret = 1
+  local start = openStrings[2] + startFret
+  forEachDistance(start, function(distance, abbreviation)
+    emit("SingleTarget", startFret + distance, abbreviation)
+  end)
+end
+
+function PrintAdjacentPairs()
+  local startFret = 5
+  for upper = 1, #openStrings - 1 do
+    local lower = upper + 1
+    local start = openStrings[lower] + startFret
+    local openGap = openStrings[upper] - openStrings[lower]
+    emit("PairGrid", upper, lower, naturalName(openStrings[upper]),
+      naturalName(openStrings[lower]), startFret, naturalName(start), openGap)
+    forEachDistance(start, function(distance, abbreviation, target)
+      local targetFret = startFret + distance - openGap
+      emit("PairTarget", upper, targetFret, abbreviation, target)
+    end)
+  end
+end
+
+function PrintGuitarTuning()
+  local tuning = {}
+  for stringNumber = #openStrings, 1, -1 do
+    tuning[#tuning + 1] = naturalName(openStrings[stringNumber])
+  end
+  tex.sprint(table.concat(tuning, "-"))
+end
+\end{luacode*}
+
+\newcommand{\ChartLeft}{34}
+\newcommand{\ChartRight}{808}
+
+\newcommand{\ChartHeading}[2]{%
+  \ChartText{\ChartLeft}{548}{28}{ChartInk}{\bfseries #1}%
+  \ChartText{\ChartLeft}{523}{12}{ChartMuted}{#2}%
+  \draw[ChartRule,line width=.65bp] (\ChartLeft,510) -- (\ChartRight,510);%
+}
+
+\newcommand{\IntervalBaseline}[1]{472-23*(#1)}
+\newcommand{\IntervalRow}[7]{%
+  \ifodd#2\relax
+    \fill[ChartStripe] (\ChartLeft,{\IntervalBaseline{#1}-8})
+      rectangle (398,{\IntervalBaseline{#1}+15});
+  \fi
+  \ChartText{45}{\IntervalBaseline{#1}}{11}{ChartInk}{\Localize{#5}{#4}}%
+  \ChartText[base]{227}{\IntervalBaseline{#1}}{11}{ChartAccent}{\bfseries #3}%
+  \ChartText[base]{290}{\IntervalBaseline{#1}}{11}{ChartInk}{#6}%
+  \ChartText[base]{357}{\IntervalBaseline{#1}}{11}{ChartInk}{C4\,-\,#7}%
+}
+
+\newcommand{\SharedDistanceFrame}[2]{%
+  \draw[ChartAccent,line width=.8bp,rounded corners=2bp]
+    (264,{\IntervalBaseline{#2}-5}) rectangle (316,{\IntervalBaseline{#1}+12});%
+}
+
+\newcommand{\DrawIntervalTable}{%
+  \fill[ChartHeader] (\ChartLeft,464) rectangle (398,492);
+  \ChartText{45}{474}{10.5}{ChartAccent}{\bfseries\Localize{Интервал}{Interval}}%
+  \ChartText[base]{227}{474}{10.5}{ChartAccent}{\bfseries\Localize{Сокр.}{Abbr.}}%
+  \ChartText[base]{290}{474}{10.5}{ChartAccent}{\bfseries\Localize{Полутоны}{Semitones}}%
+  \ChartText[base]{357}{474}{10.5}{ChartAccent}{\bfseries\Localize{От C4}{From C4}}%
+  \directlua{PrintIntervalTable()}%
+  \draw[ChartRule,line width=.65bp] (\ChartLeft,142) -- (398,142);
+}
+
+\newcommand{\StartMarker}[2]{\fill[ChartAccent] ({#1},{#2}) circle[radius=3.6bp];}
+\newcommand{\TargetMarker}[2]{%
+  \path[fill=white,draw=ChartInk,line width=.9bp]
+    ({#1},{#2+4.7}) -- ({#1+4.7},{#2}) -- ({#1},{#2-4.7}) -- ({#1-4.7},{#2}) -- cycle;%
+}
+\newcommand{\UnisonMarker}[2]{%
+  \TargetMarker{#1}{#2}%
+  \fill[ChartAccent] ({#1},{#2}) circle[radius=1.8bp];%
+}
+
+\newcommand{\SingleX}[1]{452+25.5*(#1)}
+\newcommand{\SingleTarget}[2]{%
+  \ifnum#1=1\relax
+    \UnisonMarker{\SingleX{#1}}{239}%
+  \else
+    \TargetMarker{\SingleX{#1}}{239}%
+  \fi
+  \ChartText[base]{\SingleX{#1}}{252}{8.6}{ChartAccent}{\bfseries #2}%
+}
+
+\newcommand{\DrawOneString}{%
+  \GuideHeading{430}{318}{\Localize{На одной струне}{On one string}}%
+  \GuideText{430}{305}{378}{\Localize
+    {На струне 2 лад 0 даёт B3, а лад 1 даёт исходную C4.\\
+     Каждый лад вправо добавляет полутон. Ноты указаны в таблице.}
+    {String 2 (B3), starting on fret 1 (C4). Fret 0 is open. Each fret to
+     the right adds one semitone. See the table for the sounding pitches.}}%
+  \draw[ChartMuted,line width=.7bp] ({\SingleX{0}-11},239) -- ({\SingleX{13}+11},239);
+  \foreach \fret in {0,...,13} {%
+    \draw[ChartRule,line width=.55bp] ({\SingleX{\fret}+.5*25.5},229)
+      -- ({\SingleX{\fret}+.5*25.5},248);
+    \ChartText[base]{\SingleX{\fret}}{214}{9.5}{ChartMuted}{\fret}%
+  }%
+  \draw[ChartMuted,line width=1.15bp] ({\SingleX{0}+.5*25.5},229)
+    -- ({\SingleX{0}+.5*25.5},248);
+  \directlua{PrintOneString()}%
+  \StartMarker{434}{193}%
+  \ChartText{447}{190}{10.25}{ChartInk}{\Localize{Исходная нота}{Starting note}}%
+  \TargetMarker{551}{193}%
+  \ChartText{564}{190}{10.25}{ChartInk}{\Localize{Целевая нота}{Target note}}%
+  \UnisonMarker{663}{193}%
+  \ChartText{676}{190}{10.25}{ChartInk}{\Localize{Прима (тот же лад)}{Unison (same fret)}}%
+  \GuideText{430}{175}{378}{\Localize
+    {Для транспонирования сдвиньте обе ноты на равное число ладов.\\
+     Сдвиг на два лада вправо сохраняет большую терцию (M3):\\
+     из C4 (лад 1) - E4 (лад 5) в D4 (лад 3) - F♯4 (лад 7).}
+    {To transpose, move both notes by the same number of frets.\\
+     Shift two frets right to keep the major third (M3):\\
+     C4 (fret 1) - E4 (fret 5) becomes D4 (fret 3) - F♯4 (fret 7).}}%
+}
+
+\newcommand{\DrawIntervalGuide}{%
+  \GuideHeading{430}{481}{\Localize{Название и расстояние}{Name and distance}}%
+  \GuideText{430}{469}{378}{\Localize
+    {Считайте ступени по буквам C D E F G A B, включая обе ноты.
+     Это число даёт название интервала (терция, кварта и т.\,д.).
+     Качество уточняет его вид. Расстояние измеряется в полутонах.}
+    {Count letter names C D E F G A B, including both endpoints.
+     That number gives the interval size (third, fourth, and so on).
+     The quality specifies its form. The distance is measured in semitones.}}%
+  \GuideText{430}{416}{378}{\Localize
+    {P = чистый, m = малый, M = большой, A = увеличенный.\\
+     d = уменьшённый. B = си, B♭ = си-бемоль. Смена октавы на C.}
+    {P = perfect, m = minor, M = major.\\
+     A = augmented, d = diminished. Octave numbers change at C.}}%
+  \fill[ChartHighlight] (430,339) rectangle (808,375);
+  \GuideText{440}{371}{358}{\Localize
+    {С нотой C4 нота F♯4 даёт A4 (4 буквы), а G♭4 даёт d5 (5 букв).\\
+     В равномерном строе это один лад, на 6 полутонов выше C4.}
+    {From C4, F♯4 gives A4 (four letters) and G♭4 gives d5 (five).\\
+     In equal temperament both use the same fret, 6 semitones above C4.}}%
+}
+
+\newcommand{\ChartCredit}[1]{%
+  \ChartText{\ChartLeft}{34}{9}{ChartMuted}{%
+    © 2026 \href{https://github.com/zhunkoff/music-reference}{Sergey Zhunkov}
+    \enspace·\enspace \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0}}%
+  \ChartText[base east]{\ChartRight}{34}{9}{ChartMuted}{#1 / 2}%
+}
+
+\newcommand{\DrawIntervalSources}{%
+  \draw[ChartRule,line width=.65bp] (\ChartLeft,108) -- (\ChartRight,108);
+  \ChartText{\ChartLeft}{86}{9.5}{ChartAccent}{\bfseries\Localize{Источники}{Sources}}%
+  \ChartText{125}{86}{9.5}{ChartMuted}{%
+    \href{https://pressbooks.nebraska.edu/openmusictheory/chapter/intervals/}
+      {Open Music Theory · \Localize{интервалы}{intervals}}\qquad
+    \href{https://www.fender.com/articles/setup/standard-tuning-how-eadgbe-came-to-be}
+      {Fender · \Localize{стандартный строй}{standard tuning}}\qquad
+    \href{https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/octave/}
+      {W3C MusicXML · \Localize{номера октав}{octave numbers}}}%
+  \ChartText{\ChartLeft}{67}{9.5}{ChartAccent}{\bfseries\Localize{См. также}{See also}}%
+  \ChartText{125}{67}{9.5}{ChartMuted}{%
+    \href{https://github.com/zhunkoff/music-reference/blob/main/guitar/fretboard/6-string-fretboard.\ChartLanguage.pdf}
+      {\Localize{Карта нот на грифе гитары}{Guitar fretboard map}}}%
+}
+
+\newcommand{\PairX}[1]{155+47.5*(#1)}
+\newcommand{\PairY}[1]{395-66*(#1-1)}
+
+% The higher-pitched string is drawn above the starting string, as in tab.
+\newcommand{\PairGrid}[7]{%
+  \ifnum#7=4\relax
+    \fill[ChartHighlight] (\ChartLeft,{\PairY{#1}-19}) rectangle (808,{\PairY{#1}+46});
+  \fi
+  \foreach \fret in {0,...,13} {%
+    \draw[ChartRule,line width=.55bp] ({\PairX{\fret}+.5*47.5},{\PairY{#1}-7})
+      -- ({\PairX{\fret}+.5*47.5},{\PairY{#1}+32});
+  }%
+  \draw[ChartMuted,line width=1.15bp] ({\PairX{0}+.5*47.5},{\PairY{#1}-7})
+    -- ({\PairX{0}+.5*47.5},{\PairY{#1}+32});
+  \draw[ChartMuted,line width=.7bp]
+    (131.25,{\PairY{#1}+26}) -- (796.25,{\PairY{#1}+26})
+    (131.25,{\PairY{#1}}) -- (796.25,{\PairY{#1}});
+  \ChartText{44}{\PairY{#1}+22}{11}{ChartInk}{\bfseries #1\enspace #3}%
+  \ChartText{44}{\PairY{#1}-4}{11}{ChartInk}{\bfseries #2\enspace #4}%
+  \ChartText[base]{104}{\PairY{#1}+9}{9.5}{ChartAccent}{%
+    \ifnum#7=4\relax\bfseries M3\else P4\fi}%
+  \StartMarker{\PairX{#5}}{\PairY{#1}}%
+  \ChartText[base]{\PairX{#5}}{\PairY{#1}-14}{9.5}{ChartInk}{\bfseries #6}%
+}
+
+\newcommand{\PairTarget}[4]{%
+  \TargetMarker{\PairX{#2}}{\PairY{#1}+26}%
+  \ChartText[base]{\PairX{#2}}{\PairY{#1}+37}{9.5}{ChartAccent}{\bfseries #3}%
+  \ChartText[base]{\PairX{#2}}{\PairY{#1}+11}{9}{ChartInk}{#4}%
+}
+
+\newcommand{\DrawPairs}{%
+  \ChartText{\ChartLeft}{490}{10.5}{ChartInk}{\Localize
+    {Струны 1-6 сверху вниз, как в табулатуре. Лады идут слева направо. 0 обозначает открытую струну.}
+    {Strings 1-6 run top to bottom, as in tablature. Frets run left to right. 0 marks an open string.}}%
+  \StartMarker{38}{470}%
+  \ChartText{51}{467}{10.5}{ChartInk}{\Localize{Исходная нота}{Starting note}}%
+  \TargetMarker{212}{470}%
+  \ChartText{225}{467}{10.5}{ChartInk}{\Localize{Целевая нота}{Target note}}%
+  \ChartText{386}{467}{10.5}{ChartInk}{\Localize
+    {Слева указан интервал между открытыми струнами (P4 или M3).}
+    {The open-string interval appears at left (P4 or M3).}}%
+  \ChartText{44}{447}{9.5}{ChartMuted}{\Localize{Струны}{Strings}}%
+  \foreach \fret in {0,...,13} {%
+    \ChartText[base]{\PairX{\fret}}{447}{9.5}{ChartMuted}{\fret}%
+  }%
+  \directlua{PrintAdjacentPairs()}%
+}
+
+\newcommand{\DrawPairGuide}{%
+  \draw[ChartRule,line width=.65bp] (\ChartLeft,106) -- (\ChartRight,106);
+  \GuideText{34}{97}{363}{\Localize
+    {На G-B разница между открытыми струнами на полутон меньше.
+     Поэтому цель на один лад правее, чем на квартовой паре.
+     Для M3 на D-G цель на лад левее начала, а на G-B лады совпадают.}
+    {The open strings on G-B are a semitone closer, so the target
+     is one fret farther right than on a pair tuned a fourth apart.
+     For M3, the target is one fret left on D-G and on the same fret on G-B.}}%
+  \GuideText{430}{97}{378}{\Localize
+    {На той же паре сдвигайте обе ноты на одинаковое число ладов
+     в пределах грифа. Схемы показывают положения нот. Их можно
+     сыграть по очереди, даже если лады далеко друг от друга.}
+    {On the same pair, shift both notes by the same number of frets
+     within the playable range. Play the notes one at a time if the
+     span is too wide to reach.}}%
+}
+
+\newcommand{\ChartPage}[1]{%
+  \AddToHookNext{shipout/background}{%
+    \put(0,-\paperheight){%
+      \begin{tikzpicture}[overlay,x=1bp,y=1bp]
+        #1%
+      \end{tikzpicture}%
+    }%
+  }%
+  \null\clearpage
+}
+
+\begin{document}
+\ChartPage{%
+  \ChartHeading{\ChartTitle}{\Localize
+    {От чистой примы до октавы · 12-ступенная равномерная темперация}
+    {From perfect unison to octave · 12-tone equal temperament}}%
+  \DrawIntervalTable
+  \DrawIntervalGuide
+  \DrawOneString
+  \DrawIntervalSources
+  \ChartCredit{1}%
+}
+\ChartPage{%
+  \ChartHeading{\Localize{Интервалы на соседних струнах}{Intervals on adjacent strings}}{%
+    \Localize{Звучащие высоты в стандартном строе (струны 6-1) ·}
+    {Sounding pitches in standard tuning (strings 6-1) ·}
+    \directlua{PrintGuitarTuning()}}%
+  \DrawPairs
+  \DrawPairGuide
+  \ChartCredit{2}%
+}
+\end{document}
