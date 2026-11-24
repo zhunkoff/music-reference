@@ -16,6 +16,16 @@ E A D G B E, от шестой струны к первой.
 - [PDF на русском](guitar/chords/6-string-standard-tuning.ru.pdf), [без номеров пальцев](guitar/chords/6-string-standard-tuning.ru-dots.pdf)
 - [Исходник TeX с поддержкой русского и английского](guitar/chords/6-string-standard-tuning.tex)
 
+### Карта нот на грифе гитары
+
+Карта звучащих нот шестиструнной гитары в стандартном строе, от открытых струн
+до 12-го лада. Каждый вариант занимает один альбомный лист A4. Макет у обоих
+вариантов подписей общий.
+
+- [PDF на английском с названиями нот](guitar/fretboard/6-string-fretboard.en.pdf), [с номерами октав](guitar/fretboard/6-string-fretboard.en-octaves.pdf)
+- [PDF на русском с названиями нот](guitar/fretboard/6-string-fretboard.ru.pdf), [с номерами октав](guitar/fretboard/6-string-fretboard.ru-octaves.pdf)
+- [Общий исходник TeX](guitar/fretboard/6-string-fretboard.tex)
+
 ### Частоты нот
 
 Одностраничный справочник A4 в альбомной ориентации для C0-B10 в равномерной
@@ -44,8 +54,11 @@ PDF и исходник TeX каждого документа хранятся �
 just build
 ```
 
-PDF сохраняются рядом с исходниками в `guitar/chords` и `theory/pitch`.
-Для русского используйте `just build ru`, для обоих языков — `just build-all`.
+PDF сохраняются рядом с исходниками в `guitar/chords`, `guitar/fretboard` и
+`theory/pitch`. Команда `just build ru` собирает русские версии, а `just build-all`
+собирает оба языка и все четыре PDF карты. При сборке одного языка карта содержит
+только названия нот. Чтобы собрать отдельно английскую карту с номерами октав,
+выполните `just build-fretboard en octaves`.
 По умолчанию номера пальцев в гитарных схемах видны. Команда `just build en false`
 собирает английскую версию с точками без цифр, `just build-all false` — обе языковые
 версии. Этот параметр не меняет содержимое таблицы частот нот.

@@ -1,0 +1,299 @@
+% Copyright (c) 2026 Sergey Zhunkov.
+% SPDX-License-Identifier: CC-BY-4.0
+% https://creativecommons.org/licenses/by/4.0/
+%
+% From the repository root: just build-fretboard en notes
+% Set \ChartLanguage (en or ru) and \FretboardLabels (notes or octaves)
+% before loading this source. The defaults are English and note names.
+\documentclass[a4paper,landscape]{article}
+\usepackage[margin=0pt]{geometry}
+\usepackage{fontspec}
+\usepackage{babel}
+\usepackage{etoolbox}
+\usepackage{tikz}
+\usetikzlibrary{babel}
+\usepackage{luacode}
+\usepackage{hyperref}
+
+\providecommand{\ChartLanguage}{en}
+\providecommand{\FretboardLabels}{notes}
+\newif\ifChartRussian
+\ifdefstring{\ChartLanguage}{ru}{%
+  \ChartRussiantrue
+  \babelprovide[import,main]{russian}
+  \babelprovide[import]{english}
+}{%
+  \ifdefstring{\ChartLanguage}{en}{%
+    \babelprovide[import,main]{english}
+    \babelprovide[import]{russian}
+  }{%
+    \PackageError{guitar-fretboard}{Unsupported ChartLanguage '\ChartLanguage'}
+      {Set ChartLanguage to en or ru.}
+  }%
+}
+\newif\ifFretboardOctaves
+\ifdefstring{\FretboardLabels}{octaves}{%
+  \FretboardOctavestrue
+}{%
+  \ifdefstring{\FretboardLabels}{notes}{}{%
+    \PackageError{guitar-fretboard}{Unsupported FretboardLabels '\FretboardLabels'}
+      {Set FretboardLabels to notes or octaves.}
+  }%
+}
+
+\setmainfont{DejaVuSansCondensed.ttf}[
+  BoldFont=DejaVuSansCondensed-Bold.ttf,
+  Ligatures=NoCommon,
+  RawFeature={-kern,-clig}
+]
+\pagestyle{empty}
+
+% Use the typography and palette of the chord and note-frequency charts.
+\definecolor{ChartInk}{RGB}{23,43,50}
+\definecolor{ChartMuted}{RGB}{70,91,99}
+\definecolor{ChartAccent}{RGB}{25,87,85}
+\definecolor{ChartRule}{RGB}{197,208,209}
+\definecolor{ChartHeader}{RGB}{231,239,239}
+\definecolor{ChartStripe}{RGB}{244,247,247}
+\definecolor{ChartOctave}{RGB}{221,237,234}
+
+\newcommand{\Localize}[2]{\ifChartRussian#1\else#2\fi}
+\newcommand{\ChartTitle}{\Localize{Карта нот на грифе гитары}{Guitar fretboard map}}
+\newcommand{\ChartVariant}{\ifFretboardOctaves
+  \Localize{Ноты с номерами октав}{Notes with octave numbers}%
+\else
+  \Localize{Названия нот}{Note names}%
+\fi}
+\hypersetup{
+  pdftitle={\ChartTitle},
+  pdfauthor={Sergey Zhunkov},
+  pdfsubject={\ChartVariant},
+  colorlinks=true,
+  urlcolor=ChartAccent
+}
+\ifChartRussian
+  \hypersetup{pdflang={ru-RU}}
+\else
+  \hypersetup{pdflang={en}}
+\fi
+
+% Coordinates and font sizes are in PDF points, measured from the bottom left.
+\newcommand{\ChartText}[6][base west]{%
+  \node[anchor=#1,inner sep=0pt,outer sep=0pt,text=#5,
+    font=\fontsize{#4bp}{#4bp}\selectfont] at ({#2},{#3}) {#6};%
+}
+
+\begin{luacode*}
+local openStrings = {64, 59, 55, 50, 45, 40} -- MIDI pitches in string order 1-6.
+local pitchNames = {
+  {"C"}, {"C♯", "D♭"}, {"D"}, {"D♯", "E♭"}, {"E"}, {"F"},
+  {"F♯", "G♭"}, {"G"}, {"G♯", "A♭"}, {"A"}, {"A♯", "B♭"}, {"B"},
+}
+
+local function spellPitch(pitch, showOctaves)
+  local names = pitchNames[pitch % 12 + 1]
+  local suffix = showOctaves and tostring(pitch // 12 - 1) or ""
+  return names[1] .. suffix, names[2] and names[2] .. suffix or ""
+end
+
+function PrintFretboardTuning()
+  local tuning = {}
+  for stringNumber = #openStrings, 1, -1 do
+    tuning[#tuning + 1] = spellPitch(openStrings[stringNumber], true)
+  end
+  tex.sprint(table.concat(tuning, "-"))
+end
+
+function PrintFretboardNotes(showOctaves)
+  for stringNumber, openPitch in ipairs(openStrings) do
+    for fret = 0, 12 do
+      local first, second = spellPitch(openPitch + fret, showOctaves)
+      tex.sprint(string.format([[\FretboardCell{%d}{%d}{%s}{%s}]],
+        stringNumber, fret, first, second))
+    end
+  end
+end
+\end{luacode*}
+
+\newcommand{\ChartLeft}{34}
+\newcommand{\ChartRight}{808}
+\newcommand{\FretStart}{100}
+\newcommand{\FretWidth}{(\ChartRight-\FretStart)/13}
+\newcommand{\FretX}[1]{\FretStart+(\FretWidth)*(#1)}
+\newcommand{\FretCenter}[1]{\FretX{#1+.5}}
+\newcommand{\StringTop}{451}
+\newcommand{\StringHeight}{42}
+\newcommand{\StringY}[1]{\StringTop-\StringHeight*(#1)}
+\newcommand{\StringCenter}[1]{\StringY{#1-.5}}
+\newcommand{\HeaderTop}{482}
+\newcommand{\HeaderBaseline}{462}
+
+\newcommand{\FretboardCell}[4]{%
+  \ifstrempty{#4}{%
+    \ChartText[base]{\FretCenter{#2}}{\StringCenter{#1}-4}{12}{ChartInk}{#3}%
+  }{%
+    \ChartText[base]{\FretCenter{#2}}{\StringCenter{#1}+3.5}{12}{ChartInk}{#3}%
+    \ChartText[base]{\FretCenter{#2}}{\StringCenter{#1}-11.5}{12}{ChartInk}{#4}%
+  }%
+}
+
+\newcommand{\DrawFretboard}{%
+  \fill[ChartHeader] (\ChartLeft,\StringTop) rectangle (\ChartRight,\HeaderTop);
+  \foreach \row in {2,4,6} {%
+    \fill[ChartStripe] (\ChartLeft,{\StringY{\row}})
+      rectangle (\ChartRight,{\StringY{\row-1}});
+  }%
+  \fill[ChartOctave] ({\FretX{12}},\StringTop) rectangle (\ChartRight,\HeaderTop);
+  \foreach \fret in {0,...,12} {%
+    \draw[ChartRule,line width=.55bp] ({\FretX{\fret}},{\StringY{6}})
+      -- ({\FretX{\fret}},\HeaderTop);
+    \ChartText[base]{\FretCenter{\fret}}{\HeaderBaseline}{12}{ChartAccent}{\bfseries\fret}%
+  }%
+  \foreach \row in {0,...,5} {%
+    \draw[ChartRule,line width=.55bp] (\ChartLeft,{\StringY{\row}})
+      -- (\ChartRight,{\StringY{\row}});
+  }%
+  \draw[ChartRule,line width=.65bp] (\ChartLeft,{\StringY{6}})
+    rectangle (\ChartRight,\HeaderTop);
+  % The nut separates the open strings from fret 1. Outline the octave column.
+  \draw[ChartAccent,line width=1.65bp] ({\FretX{1}},{\StringY{6}})
+    -- ({\FretX{1}},\HeaderTop);
+  \draw[ChartAccent,line width=1.25bp] ({\FretX{12}},{\StringY{6}})
+    rectangle (\ChartRight,\HeaderTop);
+  \draw[ChartMuted,line width=.55bp,shorten <=5bp,shorten >=5bp]
+    (\ChartLeft,\HeaderTop) -- (\FretStart,\StringTop);
+  \ChartText{\ChartLeft+5}{\StringTop+4.5}{9.5}{ChartAccent}
+    {\bfseries\Localize{Струна}{String}}%
+  \ChartText[base east]{\FretStart-5}{\HeaderTop-10}{9.5}{ChartAccent}
+    {\bfseries\Localize{Лад}{Fret}}%
+  \foreach \row in {1,...,6} {%
+    \ChartText[base]{(\ChartLeft+\FretStart)/2}{\StringCenter{\row}-4}{12}{ChartAccent}
+      {\bfseries\row}%
+  }%
+  \directlua{PrintFretboardNotes(\ifFretboardOctaves true\else false\fi)}%
+}
+
+\newcommand{\DrawChartHeading}{%
+  \ChartText{\ChartLeft}{540}{27}{ChartInk}{\bfseries\ChartTitle}%
+  \ChartText[base east]{\ChartRight}{540}{12}{ChartAccent}{\bfseries\ChartVariant}%
+  \ChartText{\ChartLeft}{512}{12}{ChartMuted}{\Localize
+    {Шесть струн · Стандартный строй от низких струн к высоким}
+    {Six strings · Standard tuning from low to high}%
+    \enspace\textbf{\directlua{PrintFretboardTuning()}}}%
+}
+
+\newcommand{\DrawGuitarRange}{%
+  \coordinate (chart-nut) at ({\FretX{1}},\HeaderTop);
+  \coordinate (chart-octave) at (\ChartRight,\HeaderTop);
+  \begin{scope}[shift={(668,514)},line cap=round,line join=round]
+    \def\GuitarNut{36}%
+    % The bridge is beyond the cropped body and sets the fret spacing.
+    \def\GuitarBridge{154}%
+    \pgfmathsetmacro{\GuitarOctave}{(\GuitarNut+\GuitarBridge)/2}
+    % Route the guides through the gap between the guitar and the grid.
+    \draw[ChartMuted!82!white,line width=.6bp,rounded corners=3bp]
+      (chart-nut) -- (\GuitarNut,-12) -- (\GuitarNut,-3);
+    \draw[ChartMuted!82!white,line width=.6bp,rounded corners=3bp]
+      (chart-octave) -- (\GuitarOctave,-20) -- (\GuitarOctave,-4);
+
+    \path[draw=ChartAccent,fill=ChartStripe,line width=.85bp]
+      (140,12.8) .. controls (135,12.2) and (130,16.5) .. (126,18)
+      .. controls (115,22) and (106,15) .. (103,4)
+      -- (103,-4) .. controls (106,-15) and (114,-22) .. (125,-17)
+      .. controls (132,-14) and (136,-11) .. (140,-11.6);
+    \draw[ChartMuted!70!white,line width=.45bp,dash pattern=on 1.6bp off 1.8bp]
+      (140,12.8) -- (140,-11.6);
+    \draw[ChartMuted,line width=.65bp] (130.5,0) circle[radius=6.2bp];
+
+    \draw[ChartAccent,fill=ChartStripe,line width=.85bp]
+      (\GuitarNut,3) -- (23,7)
+      .. controls (16,10) and (5,10) .. (2,6)
+      -- (2,-5) .. controls (6,-9) and (16,-8) .. (23,-6)
+      -- (\GuitarNut,-3) -- cycle;
+    \foreach \peg in {8,14,20} {%
+      \fill[ChartMuted] (\peg,3.9) circle[radius=.85bp]
+        (\peg,-3.2) circle[radius=.85bp];
+    }%
+    \fill[white] (\GuitarNut,3) -- (119,4.4) -- (119,-4.4)
+      -- (\GuitarNut,-3) -- cycle;
+    \fill[ChartOctave] (\GuitarNut,3) -- (\GuitarOctave,4)
+      -- (\GuitarOctave,-4) -- (\GuitarNut,-3) -- cycle;
+    \draw[ChartAccent,line width=.7bp]
+      (\GuitarNut,3) -- (119,4.4) -- (119,-4.4) -- (\GuitarNut,-3) -- cycle;
+    \foreach \fret in {1,...,18} {%
+      \pgfmathsetmacro{\FretMark}{\GuitarNut+(\GuitarBridge-\GuitarNut)*(1-pow(2,-\fret/12))}
+      \draw[ChartMuted,line width=.3bp] (\FretMark,-2.6) -- (\FretMark,2.6);
+    }%
+    \draw[ChartAccent,line width=1bp]
+      (\GuitarNut,-3) -- (\GuitarNut,3)
+      (\GuitarOctave,-4) -- (\GuitarOctave,4);
+  \end{scope}%
+}
+
+\newcommand{\DrawChartNotes}{%
+  \ChartText{\ChartLeft}{172}{12}{ChartAccent}{\bfseries\Localize
+    {Как читать карту}{Reading the map}}%
+  \ChartText{\ChartLeft}{152}{10.5}{ChartInk}{\Localize
+    {Струны 1-6 идут сверху вниз, как в табулатуре.}
+    {Strings 1-6 run top to bottom, as in tablature.}}%
+  \ChartText{\ChartLeft}{137}{10.5}{ChartInk}{\Localize
+    {Лады идут слева направо. 0 обозначает открытую струну.}
+    {Frets run left to right. 0 marks an open string.}}%
+  \ChartText{\ChartLeft}{122}{10.5}{ChartInk}{\Localize
+    {Каждый следующий лад повышает звук на один полутон.}
+    {Each successive fret raises the pitch by one equal-tempered semitone.}}%
+  \ChartText{\ChartLeft}{107}{10.5}{ChartInk}{\Localize
+    {Карта показывает звучащие высоты.}
+    {The map shows sounding pitches.}}%
+
+  \ChartText{431}{172}{12}{ChartAccent}{\bfseries\Localize
+    {Октавы и названия нот}{Octaves and note names}}%
+  \ChartText{431}{152}{10.5}{ChartInk}{\Localize
+    {Лад 12 звучит на октаву выше открытой струны.}
+    {Fret 12 sounds one octave above the open string.}}%
+  \ChartText{431}{137}{10.5}{ChartInk}{\Localize
+    {Лад 13 на октаву выше лада 1, и так далее.}
+    {Fret 13 is one octave above fret 1, and so on.}}%
+  \ChartText{431}{122}{10.5}{ChartInk}{\Localize
+    {В научной нотации номер октавы меняется на C, как в паре B3 и C4.}
+    {Scientific octave numbers change at C, as in B3 to C4.}}%
+  \ChartText{431}{107}{10.5}{ChartInk}{\Localize
+    {В равномерном строе C♯ = D♭. B = си, B♭ = си-бемоль.}
+    {In equal temperament, C♯ and D♭ sound the same.}}%
+}
+
+\newcommand{\DrawChartFooter}{%
+  \draw[ChartRule,line width=.65bp] (\ChartLeft,90) -- (\ChartRight,90);
+  \ChartText{\ChartLeft}{74}{9}{ChartAccent}{\bfseries\Localize{Источники}{Sources}}%
+  \ChartText{128}{74}{9}{ChartMuted}{%
+    \href{https://asia-oceania.yamaha.com/en/musical-instruments/guitars-basses-amps/explore/musical-instrument-guide/acoustic-guitar/structure002.html}
+      {Yamaha · \Localize{строй и лады}{tuning and frets}}\qquad
+    \href{https://www.phys.unsw.edu.au/jw/notes.html}
+      {UNSW · \Localize{равномерная темперация}{equal temperament}}\qquad
+    \href{https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/octave/}
+      {W3C MusicXML · \Localize{номера октав}{octave numbers}}}%
+  \ChartText{\ChartLeft}{58}{9}{ChartAccent}{\bfseries\Localize{См. также}{See also}}%
+  \ChartText{128}{58}{9}{ChartMuted}{%
+    \href{https://github.com/zhunkoff/music-reference/blob/main/guitar/chords/6-string-standard-tuning.\ChartLanguage.pdf}
+      {\Localize{Гитарные аккорды}{Guitar chords}}\qquad
+    \href{https://github.com/zhunkoff/music-reference/blob/main/theory/pitch/note-frequencies.\ChartLanguage.pdf}
+      {\Localize{Частоты нот}{Note frequencies}}}%
+  \ChartText{\ChartLeft}{38}{9}{ChartMuted}{%
+    © 2026 \href{https://github.com/zhunkoff/music-reference}{Sergey Zhunkov}
+    · \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0}}%
+}
+
+\begin{document}
+\AddToHookNext{shipout/background}{%
+  \put(0,-\paperheight){%
+    \begin{tikzpicture}[overlay,x=1bp,y=1bp]
+      \DrawChartHeading
+      \DrawGuitarRange
+      \DrawFretboard
+      \DrawChartNotes
+      \DrawChartFooter
+    \end{tikzpicture}%
+  }%
+}
+\null\clearpage
+\end{document}

@@ -5,13 +5,23 @@
 set windows-shell := ["powershell.exe", "-NoLogo", "-NoProfile", "-Command"]
 
 # Build in English (default) or Russian; set fingers to false for plain dots.
-build language="en" fingers="true":
+build language="en" fingers="true": (_build-documents language fingers) (build-fretboard language "notes")
+
+_build-documents language fingers:
     latexmk \
+        -e '@default_files = grep { $_ ne $fretboard_source } @default_files;' \
         '-jobname=%A.{{ if language =~ "^(en|ru)$" { language } else { error("Language must be en or ru") } }}{{ if fingers == "true" { "" } else if fingers == "false" { "-dots" } else { error("Finger numbers must be true or false") } }}' \
         '-usepretex={{ '\def\ChartLanguage{' + language + '}\def\ShowFingerNumbers{' + fingers + '}' }}'
 
-# Build every registered document in both languages.
-build-all fingers="true": (build "en" fingers) (build "ru" fingers)
+# Build the fretboard with note names (default) or with octave numbers.
+build-fretboard language="en" labels="notes":
+    latexmk \
+        -e '@default_files = ($fretboard_source);' \
+        '-jobname=%A.{{ if language =~ "^(en|ru)$" { language } else { error("Language must be en or ru") } }}{{ if labels == "notes" { "" } else if labels == "octaves" { "-octaves" } else { error("Fretboard labels must be notes or octaves") } }}' \
+        '-usepretex={{ '\def\ChartLanguage{' + language + '}\def\FretboardLabels{' + labels + '}' }}'
+
+# Build every registered document in both languages and all four fretboard PDFs.
+build-all fingers="true": (build "en" fingers) (build "ru" fingers) (build-fretboard "en" "octaves") (build-fretboard "ru" "octaves")
 
 # Remove auxiliary files for registered documents.
 clean:
@@ -20,3 +30,5 @@ clean:
     latexmk -c '-jobname=%A.ru'
     latexmk -c '-jobname=%A.en-dots'
     latexmk -c '-jobname=%A.ru-dots'
+    latexmk -c -e '@default_files = ($fretboard_source);' '-jobname=%A.en-octaves'
+    latexmk -c -e '@default_files = ($fretboard_source);' '-jobname=%A.ru-octaves'

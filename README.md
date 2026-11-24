@@ -16,6 +16,16 @@ from the sixth string to the first.
 - [Russian PDF](guitar/chords/6-string-standard-tuning.ru.pdf), [without finger numbers](guitar/chords/6-string-standard-tuning.ru-dots.pdf)
 - [TeX source with Russian and English support](guitar/chords/6-string-standard-tuning.tex)
 
+### Guitar fretboard map
+
+A one-page landscape A4 map of sounding notes on a six-string guitar in standard
+tuning, from the open strings through fret 12. The two label variants share the
+same layout.
+
+- [English PDF with note names](guitar/fretboard/6-string-fretboard.en.pdf), [with octave numbers](guitar/fretboard/6-string-fretboard.en-octaves.pdf)
+- [Russian PDF with note names](guitar/fretboard/6-string-fretboard.ru.pdf), [with octave numbers](guitar/fretboard/6-string-fretboard.ru-octaves.pdf)
+- [Shared TeX source](guitar/fretboard/6-string-fretboard.tex)
+
 ### Note frequencies
 
 A one-page landscape A4 reference for C0-B10 in 12-tone equal temperament,
@@ -44,8 +54,11 @@ build all registered documents in English.
 just build
 ```
 
-PDFs are saved beside their sources in `guitar/chords` and `theory/pitch`.
-Use `just build ru` for Russian or `just build-all` for both languages.
+PDFs are saved beside their sources in `guitar/chords`, `guitar/fretboard`, and
+`theory/pitch`. Use `just build ru` for Russian or `just build-all` for both
+languages and all four fretboard PDFs. A single-language build produces the
+fretboard with note names only. Use `just build-fretboard en octaves` to build
+only the English fretboard map with octave numbers.
 Guitar finger numbers are shown by default. Use `just build en false` for English
 with plain dots, or `just build-all false` for both languages without numbers.
 This option does not change the note-frequency chart's content.

@@ -227,10 +227,11 @@ just build-all
 | --- | --- |
 | `just build` or `just build en` | Build every registered document in English |
 | `just build ru` | Build every registered document in Russian |
-| `just build-all` | Build every registered document in both languages |
+| `just build-all` | Build every registered document in both languages, including all four fretboard PDFs |
 | `just build en false` | Build English documents without finger numbers |
 | `just build ru false` | Build Russian documents without finger numbers |
-| `just build-all false` | Build both languages without finger numbers |
+| `just build-all false` | Build both languages without finger numbers, including all four fretboard PDFs |
+| `just build-fretboard en octaves` | Build only the English fretboard map with octave numbers |
 | `just clean` | Remove auxiliary files for registered documents |
 | `just --list` | List available commands |
 
@@ -248,7 +249,7 @@ the resulting files appear in `guitar/chords`.
 | `6-string-standard-tuning.en-dots.pdf` | English chart without finger numbers |
 | `6-string-standard-tuning.ru-dots.pdf` | Russian chart without finger numbers |
 
-The note-frequency chart is written to `theory/pitch`:
+The note-frequency chart is written to `theory/pitch`.
 
 | File | Contents |
 | --- | --- |
@@ -283,10 +284,41 @@ For a direct LuaLaTeX build of the guitar chart, define `\ShowFingerNumbers` as
 `false` before loading the source. Its default is `true`. Invalid language or
 finger-number values stop the build with an error.
 
-Each guitar PDF contains two landscape A4 pages and 96 chord diagrams in total.
+Each guitar chord PDF contains two landscape A4 pages and 96 chord diagrams in total.
 Open the PDF in a viewer and check the language, symbols, finger numbers, and
 page layout.
 For a print check, select A4 landscape and 100% / actual size.
+
+### Guitar fretboard map
+
+The four PDFs in `guitar/fretboard` each use one landscape A4 page and share
+the same grid.
+
+| File | Contents |
+| --- | --- |
+| `6-string-fretboard.en.pdf` | English, note names |
+| `6-string-fretboard.en-octaves.pdf` | English, note names with sounding octave numbers |
+| `6-string-fretboard.ru.pdf` | Russian, note names |
+| `6-string-fretboard.ru-octaves.pdf` | Russian, note names with sounding octave numbers |
+
+`just build-all` builds all four PDFs. `just build` and `just build ru` build the
+note-name variant in the selected language. To build a single fretboard PDF,
+pass the language and label mode to `just build-fretboard`.
+
+```sh
+just build-fretboard en notes
+just build-fretboard en octaves
+just build-fretboard ru notes
+just build-fretboard ru octaves
+```
+
+The defaults are `en` and `notes`. For direct LuaLaTeX builds, set `\ChartLanguage`
+and `\FretboardLabels` before loading the source. Use `notes` or `octaves` for
+the labels. In a print check, use A4 landscape and 100% / actual size in both
+color and grayscale. Check all fret labels and accidentals, the nut line
+after column 0, and the outline around fret 12.
+
+### Cleaning build files
 
 LaTeX and `latexmk` also create `.aux`, `.log`, `.out`, `.fls`, and `.fdb_latexmk`
 files with the same job name. The `.log` file records errors and warnings. These
