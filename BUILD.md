@@ -233,6 +233,7 @@ just build-all
 | `just build-all false` | Build both languages without finger numbers, including all four fretboard PDFs |
 | `just build-fretboard en octaves` | Build only the English fretboard map with octave numbers |
 | `just build-intervals en` | Build only the English interval reference |
+| `just build-chord-construction en` | Build only the English chord construction reference |
 | `just clean` | Remove auxiliary files for registered documents |
 | `just --list` | List available commands |
 
@@ -344,6 +345,32 @@ chord chart's finger-number setting.
 For print verification, select A4 landscape and 100% / actual size. Check both
 pages in color and grayscale for legible accidentals and fret labels, and for
 clear starting and target markers.
+
+### Chord construction
+
+The chord construction reference in `theory/harmony` uses one landscape A4 page
+per language.
+
+| File | Contents |
+| --- | --- |
+| `chord-construction.en.pdf` | English chord construction reference |
+| `chord-construction.ru.pdf` | Russian chord construction reference |
+
+`just build-all` builds both PDFs. `just build` and `just build ru` build the
+selected language. The standalone recipe accepts the same language options.
+
+```sh
+just build-chord-construction en
+just build-chord-construction ru
+```
+
+The default is `en`. For direct LuaLaTeX builds, set `\ChartLanguage` to `en`
+or `ru` before loading the shared source. Each language has one PDF regardless
+of the guitar chord chart's finger-number setting.
+
+For print verification, select A4 landscape and 100% / actual size. Check each
+language in color and grayscale, especially the chord symbols, flats, sharps,
+and the double flat in `Cdim7`.
 
 ### Cleaning build files
 
