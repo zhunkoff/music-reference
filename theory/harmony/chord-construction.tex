@@ -1,0 +1,221 @@
+% Copyright (c) 2026 Sergey Zhunkov.
+% SPDX-License-Identifier: CC-BY-4.0
+% https://creativecommons.org/licenses/by/4.0/
+%
+% From the repository root: just build-chord-construction en
+% Set \ChartLanguage to en or ru before loading this source. English is the default.
+\documentclass[a4paper,landscape]{article}
+\usepackage[margin=0pt]{geometry}
+\usepackage{fontspec}
+\usepackage{babel}
+\usepackage{etoolbox}
+\usepackage{tikz}
+\usetikzlibrary{babel}
+\usepackage{hyperref}
+
+\providecommand{\ChartLanguage}{en}
+\newif\ifChartRussian
+\ifdefstring{\ChartLanguage}{ru}{%
+  \ChartRussiantrue
+  \babelprovide[import,main]{russian}
+  \babelprovide[import]{english}
+}{%
+  \ifdefstring{\ChartLanguage}{en}{%
+    \babelprovide[import,main]{english}
+    \babelprovide[import]{russian}
+  }{%
+    \PackageError{chord-construction}{Unsupported ChartLanguage '\ChartLanguage'}
+      {Set ChartLanguage to en or ru.}
+  }%
+}
+
+\setmainfont{DejaVuSansCondensed.ttf}[
+  BoldFont=DejaVuSansCondensed-Bold.ttf,
+  Ligatures=NoCommon,
+  RawFeature={-kern,-clig}
+]
+\pagestyle{empty}
+
+% Match the interval reference's typography and palette.
+\definecolor{ChartInk}{RGB}{23,43,50}
+\definecolor{ChartMuted}{RGB}{70,91,99}
+\definecolor{ChartAccent}{RGB}{25,87,85}
+\definecolor{ChartRule}{RGB}{197,208,209}
+\definecolor{ChartHeader}{RGB}{231,239,239}
+\definecolor{ChartStripe}{RGB}{244,247,247}
+\definecolor{ChartHighlight}{RGB}{221,237,234}
+
+\newcommand{\Localize}[2]{\ifChartRussian#1\else#2\fi}
+\newcommand{\ChartTitle}{\Localize{Построение аккордов}{Chord construction}}
+\newcommand{\ChartSubtitle}{\Localize
+  {Обозначения аккордов, формулы ступеней и ноты для гитаристов}
+  {Chord symbols, degree formulas, and notes for guitarists}}
+\hypersetup{
+  pdftitle={\ChartTitle},
+  pdfauthor={Sergey Zhunkov},
+  pdfsubject={\ChartSubtitle},
+  colorlinks=true,
+  urlcolor=ChartAccent
+}
+\ifChartRussian
+  \hypersetup{pdflang={ru-RU}}
+\else
+  \hypersetup{pdflang={en}}
+\fi
+
+% Coordinates and font sizes are in PDF points, measured from the bottom left.
+\newcommand{\ChartText}[6][base west]{%
+  \node[anchor=#1,inner sep=0pt,outer sep=0pt,text=#5,
+    font=\fontsize{#4bp}{#4bp}\selectfont] at ({#2},{#3}) {#6};%
+}
+\newcommand{\ChartLeft}{34}
+\newcommand{\ChartRight}{808}
+\newcommand{\TableRight}{518}
+\newcommand{\NameX}{45}
+\newcommand{\SymbolX}{245}
+\newcommand{\FormulaX}{345}
+\newcommand{\NotesX}{432}
+\newcount\ChordTableTop
+\newcount\ChordGroupRow
+
+\newcommand{\ChordGroup}[1]{%
+  \fill[ChartHeader] (\ChartLeft,{\the\ChordTableTop-19})
+    rectangle (\TableRight,\the\ChordTableTop);
+  \ChartText{\NameX}{\the\ChordTableTop-13}{10}{ChartAccent}{\bfseries #1}%
+  \advance\ChordTableTop by -19\relax
+  \ChordGroupRow=0\relax
+}
+
+% Each row shares its symbols, degrees, and pitches across both languages.
+% The fifth argument spells the pitches from C in degree order.
+\newcommand{\ChordRow}[5]{%
+  \ifodd\ChordGroupRow
+    \fill[ChartStripe] (\ChartLeft,{\the\ChordTableTop-22})
+      rectangle (\TableRight,\the\ChordTableTop);
+  \fi
+  \ChartText{\NameX}{\the\ChordTableTop-15}{11}{ChartInk}{\Localize{#2}{#1}}%
+  \ChartText{\SymbolX}{\the\ChordTableTop-15}{12}{ChartInk}{#3}%
+  \ChartText{\FormulaX}{\the\ChordTableTop-15}{12}{ChartInk}{#4}%
+  \ChartText{\NotesX}{\the\ChordTableTop-15}{12}{ChartInk}{#5}%
+  \advance\ChordTableTop by -22\relax
+  \advance\ChordGroupRow by 1\relax
+}
+
+\newcommand{\DrawChordTable}{%
+  \fill[ChartHighlight] (\ChartLeft,468) rectangle (\TableRight,492);
+  \ChartText{\NameX}{476}{10.5}{ChartAccent}{\bfseries\Localize{Тип аккорда}{Chord type}}%
+  \ChartText{\SymbolX}{476}{10.5}{ChartAccent}{\bfseries\Localize{Обозначения}{Symbols}}%
+  \ChartText{\FormulaX}{476}{10.5}{ChartAccent}{\bfseries\Localize{Ступени}{Degrees}}%
+  \ChartText{\NotesX}{476}{10.5}{ChartAccent}{\bfseries\Localize{Ноты от C}{Notes from C}}%
+  \ChordTableTop=468\relax
+
+  \ChordGroup{\Localize{Трезвучия}{Triads}}%
+  \ChordRow{Major}{Мажорное}{C}{1 3 5}{C E G}%
+  \ChordRow{Minor}{Минорное}{Cm}{1 ♭3 5}{C E♭ G}%
+  \ChordRow{Diminished}{Уменьшённое}{Cdim, C°}{1 ♭3 ♭5}{C E♭ G♭}%
+  \ChordRow{Augmented}{Увеличенное}{Caug, C+}{1 3 ♯5}{C E G♯}%
+
+  \ChordGroup{\Localize{Септаккорды}{Seventh chords}}%
+  \ChordRow{Dominant seventh}{Доминантсептаккорд}{C7}{1 3 5 ♭7}{C E G B♭}%
+  \ChordRow{Major seventh}{Большой мажорный}{Cmaj7}{1 3 5 7}{C E G B}%
+  \ChordRow{Minor seventh}{Малый минорный}{Cm7}{1 ♭3 5 ♭7}{C E♭ G B♭}%
+  \ChordRow{Half-diminished seventh}{Полууменьшённый}{Cm7♭5, Cø7}{1 ♭3 ♭5 ♭7}{C E♭ G♭ B♭}%
+  \ChordRow{Diminished seventh}{Уменьшённый}{Cdim7, C°7}{1 ♭3 ♭5 ♭♭7}{C E♭ G♭ B♭♭}%
+
+  \ChordGroup{\Localize{Замена терции и добавленные ступени}{Suspensions and added tones}}%
+  \ChordRow{Suspended second}{С задержанием на секунде}{Csus2}{1 2 5}{C D G}%
+  \ChordRow{Suspended fourth}{С задержанием на кварте}{Csus4, Csus}{1 4 5}{C F G}%
+  \ChordRow{Major with added sixth}{Мажорный с секстой}{C6}{1 3 5 6}{C E G A}%
+  \ChordRow{Minor with added sixth}{Минорный с секстой}{Cm6}{1 ♭3 5 6}{C E♭ G A}%
+  \ChordRow{Major with added ninth}{Мажорный с добавленной ноной}{Cadd9}{1 3 5 9}{C E G D}%
+
+  \draw[ChartRule,line width=.65bp] (\ChartLeft,\the\ChordTableTop)
+    -- (\TableRight,\the\ChordTableTop);
+  \ChartText{\NameX}{83}{10}{ChartMuted}{\Localize
+    {Международные обозначения C D E F G A B \enspace·\enspace B = си, B♭ = си-бемоль}
+    {International note names \enspace C D E F G A B}}%
+}
+
+\newcommand{\GuideSection}[2]{%
+  {\color{ChartAccent}\fontsize{13bp}{15bp}\selectfont\bfseries #1\par}%
+  \vspace{2bp}%
+  #2\par
+  \vspace{8bp}%
+}
+
+\newcommand{\DrawChordGuide}{%
+  \node[anchor=north west,inner sep=0pt,outer sep=0pt,text=ChartInk,
+    text width=263bp,align=left,font=\fontsize{11bp}{14bp}\selectfont] at (545,492) {%
+    \GuideSection{\Localize{Как читать формулу}{Build from the root}}{\Localize
+      {Начальная буква и знак при ней задают основной тон (1). Берите
+       ступени его мажорной гаммы. ♭ понижает ступень на полутон, ♯ повышает.
+       Для Dm понизьте F♯ (3) до F (♭3). Получится \mbox{D F A}.}
+      {The first letter and its accidental give the root (1). Use its
+       major scale. ♭ lowers a degree by one semitone and ♯ raises it by one.
+       For Dm, lower F♯ (3) to F (♭3) to get \mbox{D F A}.}}%
+    \GuideSection{\Localize{sus и add}{sus and add}}{\Localize
+      {В Csus2 терцию E заменяет D \mbox{(C D G)}, в Csus4 — F \mbox{(C F G)}.
+       В Cadd9 звучат и терция E, и добавленная D \mbox{(C E G D)}.}
+      {Csus2 replaces the third, E, with D \mbox{(C D G)}.
+       Csus4 replaces it with F \mbox{(C F G)}. Cadd9 keeps E and adds D \mbox{(C E G D)}.}}%
+    \GuideSection{\Localize{add9 и 9}{add9 and 9}}{\Localize
+      {Нона — секунда через октаву. Cadd9 добавляет D к трезвучию C.
+       C9 \mbox{(C E G B♭ D)} добавляет D к C7 с малой септимой B♭.}
+      {A ninth is a second plus an octave. Cadd9 adds D to the C triad.
+       C9 \mbox{(C E G B♭ D)} adds D to C7, which includes B♭, the minor seventh.}}%
+    \GuideSection{\Localize{Септимы ♭7 и ♭♭7}{The sevenths ♭7 and ♭♭7}}{\Localize
+      {От C до B♭ — малая септима (10 полутонов), до B♭♭ — уменьшённая (9).
+       В равномерной темперации B♭♭ звучит как A. Буква B сохраняет
+       запись септимы. От C до A — большая секста.}
+      {From C, B♭ is a minor seventh (10 semitones) and B♭♭ a diminished seventh (9).
+       B♭♭ sounds like A in equal temperament. The letter B spells a seventh
+       above C, while A spells a major sixth.}}%
+    \GuideSection{\Localize{Расположение нот на гитаре}{From formula to voicing}}{\Localize
+      {Таблица даёт полный состав. В C/E нота E в басу (первое обращение).
+       На гитаре можно удвоить C в другой октаве. В C7 можно опустить
+       чистую квинту и сыграть \mbox{C E B♭}.}
+      {The table gives the full chord. C/E puts E in the bass (first inversion).
+       On guitar you can double C in another octave. You can omit the perfect
+       fifth in C7 and play \mbox{C E B♭}.}}%
+  };%
+}
+
+\newcommand{\DrawChordFooter}{%
+  \draw[ChartRule,line width=.65bp] (\ChartLeft,70) -- (\ChartRight,70);
+  \ChartText{\ChartLeft}{52}{9.5}{ChartAccent}{\bfseries\Localize{Источники}{Sources}}%
+  \ChartText{109}{52}{9.5}{ChartMuted}{%
+    Open Music Theory ·
+    \href{https://pressbooks.nebraska.edu/openmusictheory/chapter/chord-symbols/}
+      {\Localize{обозначения}{chord symbols}} ·
+    \href{https://pressbooks.nebraska.edu/openmusictheory/chapter/seventh-chords/}
+      {\Localize{септаккорды}{seventh chords}}%
+    \qquad H. Martin ·
+    \href{https://www.mtosmt.org/issues/mto.23.29.2/mto.23.29.2.martin.html}
+      {\Localize{добавленная секста в джазе}{added sixths in jazz}}}%
+  \ChartText{\ChartLeft}{34}{9.5}{ChartAccent}{\bfseries\Localize{См. также}{See also}}%
+  \ChartText{109}{34}{9.5}{ChartMuted}{%
+    \href{https://github.com/zhunkoff/music-reference/blob/main/theory/intervals/intervals.\ChartLanguage.pdf}
+      {\Localize{Музыкальные интервалы}{Musical intervals}}%
+    \qquad
+    \href{https://github.com/zhunkoff/music-reference/blob/main/guitar/fretboard/6-string-fretboard.\ChartLanguage.pdf}
+      {\Localize{Карта нот на грифе гитары}{Guitar fretboard map}}}%
+  \ChartText[base east]{\ChartRight}{34}{9}{ChartMuted}{%
+    © 2026 \href{https://github.com/zhunkoff/music-reference}{Sergey Zhunkov}
+    \enspace·\enspace \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0}}%
+}
+
+\begin{document}
+\AddToHookNext{shipout/background}{%
+  \put(0,-\paperheight){%
+    \begin{tikzpicture}[overlay,x=1bp,y=1bp]
+      \ChartText{\ChartLeft}{548}{28}{ChartInk}{\bfseries\ChartTitle}%
+      \ChartText{\ChartLeft}{523}{12}{ChartMuted}{\ChartSubtitle}%
+      \draw[ChartRule,line width=.65bp] (\ChartLeft,510) -- (\ChartRight,510);
+      \DrawChordTable
+      \DrawChordGuide
+      \DrawChordFooter
+    \end{tikzpicture}%
+  }%
+}
+\null
+\end{document}

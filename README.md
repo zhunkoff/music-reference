@@ -36,6 +36,16 @@ all five adjacent string pairs in standard tuning.
 - [Russian PDF](theory/intervals/intervals.ru.pdf)
 - [Shared TeX source](theory/intervals/intervals.tex)
 
+### Chord construction
+
+A one-page landscape A4 reference for guitarists with chord symbols, degree
+formulas, and examples from C for 14 chord types. The guide explains suspended
+and added tones, seventh spellings, and how to turn a formula into a voicing.
+
+- [English PDF](theory/harmony/chord-construction.en.pdf)
+- [Russian PDF](theory/harmony/chord-construction.ru.pdf)
+- [Shared TeX source](theory/harmony/chord-construction.tex)
+
 ### Note frequencies
 
 A one-page landscape A4 reference for C0-B10 in 12-tone equal temperament,
@@ -71,8 +81,8 @@ Use `just build-fretboard en octaves` to build only the English fretboard map
 with octave numbers.
 Guitar finger numbers are shown by default. Use `just build en false` for English
 with plain dots, or `just build-all false` for both languages without numbers.
-The interval reference has one PDF per language. The note-frequency chart has
-the same content in both finger-number modes.
+The interval and chord construction references each have one PDF per language.
+The note-frequency chart has the same content in both finger-number modes.
 See the [build guide](BUILD.md) for Windows, Linux, and macOS installation
 and detailed build instructions.
 
