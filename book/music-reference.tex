@@ -50,10 +50,10 @@
 \makeatother
 
 \newcommand{\BookIncludeDocument}[3]{%
-  \directlua{require("newpax").writenewpax("\luaescapestring{../#1.\ChartLanguage}")}%
+  \directlua{require("newpax").writenewpax("\luaescapestring{../#1}")}%
   \bookmark[dest=book-#2.1,level=0]{#3}%
   \newpaxsetup{destsuffix=#2}%
-  \includepdf[pages=-,fitpaper,link,linkname=book-#2]{../#1.\ChartLanguage.pdf}%
+  \includepdf[pages=-,fitpaper,link,linkname=book-#2]{../#1.pdf}%
 }
 
 \begin{document}

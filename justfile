@@ -4,49 +4,33 @@
 # This form also supports older just releases packaged by Linux distributions.
 set windows-shell := ["powershell.exe", "-NoLogo", "-NoProfile", "-Command"]
 
-# Build in English (default) or Russian; set fingers to false for plain dots.
-build language="en" fingers="true": (_build-documents language fingers) (build-fretboard language "notes") (build-intervals language) (build-chord-construction language) (build-triads language)
+# Build all documents with the configured options or positional overrides.
+build $language="" $fingers="":
+    latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(documents), language => $ENV{language}, show_finger_numbers => $ENV{fingers});'
 
-_build-documents language fingers:
-    latexmk \
-        -e '@default_files = grep { $_ ne $fretboard_source && $_ ne $intervals_source && $_ ne $chord_construction_source && $_ ne $triads_source } @default_files;' \
-        '-jobname=%A.{{ if language =~ "^(en|ru)$" { language } else { error("Language must be en or ru") } }}{{ if fingers == "true" { "" } else if fingers == "false" { "-dots" } else { error("Finger numbers must be true or false") } }}' \
-        '-usepretex={{ '\def\ChartLanguage{' + language + '}\def\ShowFingerNumbers{' + fingers + '}' }}'
+# Build the fretboard with note names or with octave numbers.
+build-fretboard $language="" $labels="":
+    latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(fretboard), language => $ENV{language}, fretboard_labels => $ENV{labels});'
 
-# Build the fretboard with note names (default) or with octave numbers.
-build-fretboard language="en" labels="notes":
-    latexmk \
-        -e '@default_files = ($fretboard_source);' \
-        '-jobname=%A.{{ if language =~ "^(en|ru)$" { language } else { error("Language must be en or ru") } }}{{ if labels == "notes" { "" } else if labels == "octaves" { "-octaves" } else { error("Fretboard labels must be notes or octaves") } }}' \
-        '-usepretex={{ '\def\ChartLanguage{' + language + '}\def\FretboardLabels{' + labels + '}' }}'
+# Build the interval reference.
+build-intervals $language="":
+    latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(intervals), language => $ENV{language});'
 
-# Build the interval reference in English (default) or Russian.
-build-intervals language="en":
-    latexmk \
-        -e '@default_files = ($intervals_source);' \
-        '-jobname=%A.{{ if language =~ "^(en|ru)$" { language } else { error("Language must be en or ru") } }}' \
-        '-usepretex={{ '\def\ChartLanguage{' + language + '}' }}'
+# Build the chord construction reference.
+build-chord-construction $language="":
+    latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(chord-construction), language => $ENV{language});'
 
-# Build the chord construction reference in English (default) or Russian.
-build-chord-construction language="en":
-    latexmk \
-        -e '@default_files = ($chord_construction_source);' \
-        '-jobname=%A.{{ if language =~ "^(en|ru)$" { language } else { error("Language must be en or ru") } }}' \
-        '-usepretex={{ '\def\ChartLanguage{' + language + '}' }}'
-
-# Build the guitar triad inversion charts in English (default) or Russian.
-build-triads language="en":
-    latexmk \
-        -e '@default_files = ($triads_source);' \
-        '-jobname=%A.{{ if language =~ "^(en|ru)$" { language } else { error("Language must be en or ru") } }}' \
-        '-usepretex={{ '\def\ChartLanguage{' + language + '}' }}'
+# Build the guitar triad inversion charts.
+build-triads $language="":
+    latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(triad-inversions), language => $ENV{language});'
 
 # Build every registered document in both languages and all four fretboard PDFs.
-build-all fingers="true": (build "en" fingers) (build "ru" fingers) (build-fretboard "en" "octaves") (build-fretboard "ru" "octaves")
+build-all $fingers="":
+    latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(all), show_finger_numbers => $ENV{fingers});'
 
-# Build a single PDF with all documents in English (default) or Russian.
-build-book language="en": (build language "true")
-    latexmk -e 'write_book_source(q({{ language }}));' build/music-reference.{{ language }}.tex
+# Build a single PDF with all documents in one language.
+build-book $language="":
+    latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(book), language => $ENV{language});'
 
 # Remove auxiliary files for registered documents.
 clean:
