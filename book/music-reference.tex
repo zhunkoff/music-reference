@@ -1,0 +1,62 @@
+% Copyright (c) 2026 Sergey Zhunkov.
+% SPDX-License-Identifier: CC-BY-4.0
+\DocumentMetadata{}
+\documentclass{article}
+\usepackage{etoolbox,xcolor,pdfpages,hyperref,bookmark,newpax}
+
+\newcommand{\BookReadme}{README.md}
+\hypersetup{
+  pdfauthor={Sergey Zhunkov},
+  pdftitle={Music reference},
+  pdflang={en}
+}
+\ifdefstring{\ChartLanguage}{ru}{%
+  \renewcommand{\BookReadme}{README.ru.md}%
+  \hypersetup{pdftitle={Справочник по музыке},pdflang={ru-RU}}%
+}{}
+\newpaxsetup{usefileattributes=true}
+
+\makeatletter
+\ExplSyntaxOn
+\prop_new:N \g_book_reference_destinations_prop
+\tl_new:N \l_book_reference_destination_tl
+\tl_new:N \g_book_pages_tl
+
+% Register all targets before importing any source, including forward links.
+\NewDocumentCommand \BookDocument { m m m }
+  {
+    \prop_gput:Nee \g_book_reference_destinations_prop
+      { (https://github.com/zhunkoff/music-reference/blob/main/\BookReadme\c_hash_str ref-#2) }
+      { book-#2.1 }
+    \tl_gput_right:Nn \g_book_pages_tl { \BookIncludeDocument{#1}{#2}{#3} }
+  }
+
+% Preserve newpax's link rectangles and attributes. Change only the action
+% of links to this book's sections, leaving other PDF annotations to newpax.
+\cs_new_eq:NN \book_newpax_uri: \NEWPAX@link@URI
+\cs_set_protected:Npn \NEWPAX@link@URI
+  {
+    \prop_get:NeNTF \g_book_reference_destinations_prop
+      { \tl_to_str:V \NEWPAX@key@URI } \l_book_reference_destination_tl
+      {
+        \def\NEWPAX@link@type{GoTo}
+        \NEWPAX@pdf@annot{/D~(\l_book_reference_destination_tl)}
+      }
+      { \book_newpax_uri: }
+  }
+
+\NewDocumentCommand \BookPages {} { \tl_use:N \g_book_pages_tl }
+\ExplSyntaxOff
+\makeatother
+
+\newcommand{\BookIncludeDocument}[3]{%
+  \directlua{require("newpax").writenewpax("\luaescapestring{../#1.\ChartLanguage}")}%
+  \bookmark[dest=book-#2.1,level=0]{#3}%
+  \newpaxsetup{destsuffix=#2}%
+  \includepdf[pages=-,fitpaper,link,linkname=book-#2]{../#1.\ChartLanguage.pdf}%
+}
+
+\begin{document}
+\BookDocuments
+\BookPages
+\end{document}

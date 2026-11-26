@@ -5,16 +5,27 @@
 Справочные таблицы и документы по музыке для обучения, практики и использования
 в собственных проектах.
 
+## Скачать сборник
+
+- [На английском (PDF)](https://github.com/zhunkoff/music-reference/releases/download/v1.1.0/music-reference.en.pdf)
+- [На русском (PDF)](https://github.com/zhunkoff/music-reference/releases/download/v1.1.0/music-reference.ru.pdf)
+
+Сборник включает все материалы ниже. В таблице аккордов показаны номера
+пальцев, а на карте грифа — названия нот. Другие варианты можно собрать
+отдельно из TeX.
+
 ## Материалы
+
+<a name="ref-guitar-chords"></a>
 
 ### Гитарные аккорды
 
 Таблица аппликатур аккордов для шестиструнной гитары в стандартном строе
 E A D G B E, от шестой струны к первой.
 
-- [PDF на английском](guitar/chords/6-string-standard-tuning.en.pdf), [без номеров пальцев](guitar/chords/6-string-standard-tuning.en-dots.pdf)
-- [PDF на русском](guitar/chords/6-string-standard-tuning.ru.pdf), [без номеров пальцев](guitar/chords/6-string-standard-tuning.ru-dots.pdf)
 - [Исходник TeX с поддержкой русского и английского](guitar/chords/6-string-standard-tuning.tex)
+
+<a name="ref-fretboard"></a>
 
 ### Карта нот на грифе гитары
 
@@ -22,9 +33,9 @@ E A D G B E, от шестой струны к первой.
 до 12-го лада. Каждый вариант занимает один альбомный лист A4. Макет у обоих
 вариантов подписей общий.
 
-- [PDF на английском с названиями нот](guitar/fretboard/6-string-fretboard.en.pdf), [с номерами октав](guitar/fretboard/6-string-fretboard.en-octaves.pdf)
-- [PDF на русском с названиями нот](guitar/fretboard/6-string-fretboard.ru.pdf), [с номерами октав](guitar/fretboard/6-string-fretboard.ru-octaves.pdf)
 - [Общий исходник TeX](guitar/fretboard/6-string-fretboard.tex)
+
+<a name="ref-triad-inversions"></a>
 
 ### Обращения трезвучий на гитаре
 
@@ -33,9 +44,9 @@ E A D G B E, от шестой струны к первой.
 и оба обращения на четырёх группах соседних струн, подписаны ступени и лады
 и объяснено транспонирование.
 
-- [PDF на английском](guitar/triads/triad-inversions.en.pdf)
-- [PDF на русском](guitar/triads/triad-inversions.ru.pdf)
 - [Общий исходник TeX](guitar/triads/triad-inversions.tex)
+
+<a name="ref-intervals"></a>
 
 ### Музыкальные интервалы
 
@@ -43,9 +54,9 @@ E A D G B E, от шестой струны к первой.
 полутонах и примерами от C4. На гитарных схемах показаны звучащие высоты на
 одной струне и на всех пяти парах соседних струн в стандартном строе.
 
-- [PDF на английском](theory/intervals/intervals.en.pdf)
-- [PDF на русском](theory/intervals/intervals.ru.pdf)
 - [Общий исходник TeX](theory/intervals/intervals.tex)
+
+<a name="ref-chord-construction"></a>
 
 ### Построение аккордов
 
@@ -54,9 +65,9 @@ E A D G B E, от шестой струны к первой.
 показано, как заменять терцию и добавлять ступени, как записывать септимы
 и как по формуле выбрать расположение нот на гитаре.
 
-- [PDF на английском](theory/harmony/chord-construction.en.pdf)
-- [PDF на русском](theory/harmony/chord-construction.ru.pdf)
 - [Общий исходник TeX](theory/harmony/chord-construction.tex)
+
+<a name="ref-note-frequencies"></a>
 
 ### Частоты нот
 
@@ -70,24 +81,25 @@ E A D G B E, от шестой струны к первой.
 верхняя граница G4 у контрабаса принята как условный справочный предел.
 Небольшой нижний индекс `bass` отличает силуэт бас-гитары от электрогитары.
 
-- [PDF на английском](theory/pitch/note-frequencies.en.pdf)
-- [PDF на русском](theory/pitch/note-frequencies.ru.pdf)
 - [Общий исходник TeX](theory/pitch/note-frequencies.tex)
 
-Материалы сгруппированы по инструментам или разделам теории музыки и темам.
-PDF и исходник TeX каждого документа хранятся рядом.
+Исходники TeX сгруппированы по инструментам, разделам теории музыки и темам.
+PDF создаются при сборке.
 
 ## Сборка документов
 
 После установки TeX Live и `just` выполните эту команду из корня репозитория,
-чтобы собрать все зарегистрированные документы на английском.
+чтобы собрать английскую версию сборника.
 
 ```sh
-just build
+just build-book
 ```
 
-PDF сохраняются рядом с исходниками. Команда `just build ru` собирает русские
-версии, а `just build-all` собирает оба языка и все четыре PDF карты.
+Команда `just build-book ru` собирает русскую версию. Сборники сохраняются в `build/`.
+
+Команда `just build` собирает отдельные PDF на английском, `just build ru` —
+на русском, а `just build-all` — на обоих языках, включая все четыре PDF карты.
+Отдельные PDF сохраняются рядом с исходниками.
 При сборке одного языка карта содержит только названия нот. Чтобы собрать
 отдельно английскую карту с номерами октав, выполните `just build-fretboard en octaves`.
 По умолчанию таблица гитарных аккордов показывает номера пальцев. Команда

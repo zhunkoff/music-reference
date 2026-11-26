@@ -44,6 +44,10 @@ build-triads language="en":
 # Build every registered document in both languages and all four fretboard PDFs.
 build-all fingers="true": (build "en" fingers) (build "ru" fingers) (build-fretboard "en" "octaves") (build-fretboard "ru" "octaves")
 
+# Build a single PDF with all documents in English (default) or Russian.
+build-book language="en": (build language "true")
+    latexmk -e 'write_book_source(q({{ language }}));' build/music-reference.{{ language }}.tex
+
 # Remove auxiliary files for registered documents.
 clean:
     latexmk -c

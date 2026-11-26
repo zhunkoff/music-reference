@@ -5,16 +5,27 @@ English | [Русский](README.ru.md)
 Music reference charts and documents for learning, practice, and use in your own
 projects.
 
+## Download the book
+
+- [English PDF](https://github.com/zhunkoff/music-reference/releases/download/v1.1.0/music-reference.en.pdf)
+- [Russian PDF](https://github.com/zhunkoff/music-reference/releases/download/v1.1.0/music-reference.ru.pdf)
+
+The book includes all the materials below, with finger numbers on the chord chart
+and note names on the fretboard map. Other variants can be built separately
+from the TeX sources.
+
 ## Materials
+
+<a name="ref-guitar-chords"></a>
 
 ### Guitar chords
 
 A chord fingering chart for a six-string guitar in standard tuning E A D G B E,
 from the sixth string to the first.
 
-- [English PDF](guitar/chords/6-string-standard-tuning.en.pdf), [without finger numbers](guitar/chords/6-string-standard-tuning.en-dots.pdf)
-- [Russian PDF](guitar/chords/6-string-standard-tuning.ru.pdf), [without finger numbers](guitar/chords/6-string-standard-tuning.ru-dots.pdf)
 - [TeX source with Russian and English support](guitar/chords/6-string-standard-tuning.tex)
+
+<a name="ref-fretboard"></a>
 
 ### Guitar fretboard map
 
@@ -22,9 +33,9 @@ A one-page landscape A4 map of sounding notes on a six-string guitar in standard
 tuning, from the open strings through fret 12. The two label variants share the
 same layout.
 
-- [English PDF with note names](guitar/fretboard/6-string-fretboard.en.pdf), [with octave numbers](guitar/fretboard/6-string-fretboard.en-octaves.pdf)
-- [Russian PDF with note names](guitar/fretboard/6-string-fretboard.ru.pdf), [with octave numbers](guitar/fretboard/6-string-fretboard.ru-octaves.pdf)
 - [Shared TeX source](guitar/fretboard/6-string-fretboard.tex)
+
+<a name="ref-triad-inversions"></a>
 
 ### Guitar triad inversions
 
@@ -32,9 +43,9 @@ Two landscape A4 pages with 24 movable C major and C minor shapes in standard
 tuning. Each page shows root position and both inversions on four groups of
 adjacent strings, with chord degrees, fret numbers, and a transposition guide.
 
-- [English PDF](guitar/triads/triad-inversions.en.pdf)
-- [Russian PDF](guitar/triads/triad-inversions.ru.pdf)
 - [Shared TeX source](guitar/triads/triad-inversions.tex)
+
+<a name="ref-intervals"></a>
 
 ### Musical intervals
 
@@ -42,9 +53,9 @@ A two-page landscape A4 reference with interval names, semitone distances, and
 examples from C4. Guitar diagrams show sounding pitches on one string and on
 all five adjacent string pairs in standard tuning.
 
-- [English PDF](theory/intervals/intervals.en.pdf)
-- [Russian PDF](theory/intervals/intervals.ru.pdf)
 - [Shared TeX source](theory/intervals/intervals.tex)
+
+<a name="ref-chord-construction"></a>
 
 ### Chord construction
 
@@ -52,9 +63,9 @@ A one-page landscape A4 reference for guitarists with chord symbols, degree
 formulas, and examples from C for 14 chord types. The guide explains suspended
 and added tones, seventh spellings, and how to turn a formula into a voicing.
 
-- [English PDF](theory/harmony/chord-construction.en.pdf)
-- [Russian PDF](theory/harmony/chord-construction.ru.pdf)
 - [Shared TeX source](theory/harmony/chord-construction.tex)
+
+<a name="ref-note-frequencies"></a>
 
 ### Note frequencies
 
@@ -68,24 +79,25 @@ four-string bass (24 frets), four-string double bass, and prima balalaika
 upper bound is a reference limit. A small `bass` subscript distinguishes the bass
 guitar's silhouette from the electric guitar's.
 
-- [English PDF](theory/pitch/note-frequencies.en.pdf)
-- [Russian PDF](theory/pitch/note-frequencies.ru.pdf)
 - [Shared TeX source](theory/pitch/note-frequencies.tex)
 
-Materials are grouped by instrument or area of music theory and topic, with each
-document's PDF and TeX source stored together.
+TeX sources are grouped by instrument or area of music theory and topic.
+PDFs are generated during the build.
 
 ## Building the documents
 
 With TeX Live and `just` installed, run this command from the repository root to
-build all registered documents in English.
+build the English book.
 
 ```sh
-just build
+just build-book
 ```
 
-PDFs are saved beside their sources. Use `just build ru` for Russian or
-`just build-all` for both languages and all four fretboard PDFs.
+Use `just build-book ru` for the Russian book. Both files are written to `build/`.
+
+Use `just build` for individual PDFs in English, `just build ru` for Russian,
+or `just build-all` for both languages and all four fretboard PDFs. Individual
+PDFs are saved beside their sources.
 A single-language build produces the fretboard with note names only.
 Use `just build-fretboard en octaves` to build only the English fretboard map
 with octave numbers.
