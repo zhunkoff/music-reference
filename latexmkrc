@@ -5,12 +5,14 @@
 $fretboard_source = 'guitar/fretboard/6-string-fretboard.tex';
 $intervals_source = 'theory/intervals/intervals.tex';
 $chord_construction_source = 'theory/harmony/chord-construction.tex';
+$triads_source = 'guitar/triads/triad-inversions.tex';
 @default_files = (
     'guitar/chords/6-string-standard-tuning.tex',
     'theory/pitch/note-frequencies.tex',
     $fretboard_source,
     $intervals_source,
     $chord_construction_source,
+    $triads_source,
 );
 
 # Compile in each document's directory using LuaLaTeX.

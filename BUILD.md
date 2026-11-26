@@ -234,6 +234,7 @@ just build-all
 | `just build-fretboard en octaves` | Build only the English fretboard map with octave numbers |
 | `just build-intervals en` | Build only the English interval reference |
 | `just build-chord-construction en` | Build only the English chord construction reference |
+| `just build-triads en` | Build only the English guitar triad inversion charts |
 | `just clean` | Remove auxiliary files for registered documents |
 | `just --list` | List available commands |
 
@@ -371,6 +372,33 @@ of the guitar chord chart's finger-number setting.
 For print verification, select A4 landscape and 100% / actual size. Check each
 language in color and grayscale, especially the chord symbols, flats, sharps,
 and the double flat in `Cdim7`.
+
+### Guitar triad inversions
+
+Each PDF in `guitar/triads` has two landscape A4 pages, one for C and one for Cm.
+The charts use compact closed shapes at the lowest available frets and label
+chord degrees beside each dot.
+
+| File | Contents |
+| --- | --- |
+| `triad-inversions.en.pdf` | English guitar triad inversion charts |
+| `triad-inversions.ru.pdf` | Russian guitar triad inversion charts |
+
+`just build-all` builds both PDFs. To build just these charts, run the recipe
+with the desired language.
+
+```sh
+just build-triads en
+just build-triads ru
+```
+
+The default is `en`. For direct LuaLaTeX builds, set `\ChartLanguage` to `en`
+or `ru` before loading the shared source. Each language has one PDF regardless
+of the guitar chord chart's finger-number setting.
+
+For print verification, select A4 landscape and 100% / actual size. Check both
+pages in each language in color and grayscale, especially the degree labels,
+fret numbers, string numbers, and muted-string marks.
 
 ### Cleaning build files
 

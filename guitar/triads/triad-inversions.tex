@@ -1,0 +1,257 @@
+% Copyright (c) 2026 Sergey Zhunkov.
+% SPDX-License-Identifier: CC-BY-4.0
+% https://creativecommons.org/licenses/by/4.0/
+%
+% From the repository root: just build-triads en
+% Set \ChartLanguage to en (default) or ru before loading this source.
+\documentclass[a4paper,landscape]{article}
+\usepackage[margin=0pt]{geometry}
+\usepackage{fontspec}
+\usepackage{babel}
+\usepackage{etoolbox}
+\usepackage{tikz}
+\usetikzlibrary{babel}
+\usepackage{luacode}
+\usepackage{hyperref}
+
+\providecommand{\ChartLanguage}{en}
+\newif\ifChartRussian
+\ifdefstring{\ChartLanguage}{ru}{%
+  \ChartRussiantrue
+  \babelprovide[import,main]{russian}
+  \babelprovide[import]{english}
+}{%
+  \ifdefstring{\ChartLanguage}{en}{%
+    \babelprovide[import,main]{english}
+    \babelprovide[import]{russian}
+  }{%
+    \PackageError{triad-inversions}{Unsupported ChartLanguage '\ChartLanguage'}
+      {Set ChartLanguage to en or ru.}
+  }%
+}
+
+\setmainfont{DejaVuSansCondensed.ttf}[
+  BoldFont=DejaVuSansCondensed-Bold.ttf,
+  Ligatures=NoCommon,
+  RawFeature={-kern,-clig}
+]
+\pagestyle{empty}
+
+% Use the typography and palette of the other guitar references.
+\definecolor{ChartInk}{RGB}{23,43,50}
+\definecolor{ChartMuted}{RGB}{70,91,99}
+\definecolor{ChartAccent}{RGB}{25,87,85}
+\definecolor{ChartRule}{RGB}{197,208,209}
+\definecolor{ChartHeader}{RGB}{231,239,239}
+\definecolor{ChartStripe}{RGB}{244,247,247}
+
+\newcommand{\Localize}[2]{\ifChartRussian#1\else#2\fi}
+\newcommand{\ChartTitle}{\Localize{Обращения трезвучий на гитаре}{Guitar triad inversions}}
+\hypersetup{
+  pdftitle={\ChartTitle},
+  pdfauthor={Sergey Zhunkov},
+  colorlinks=true,
+  urlcolor=ChartAccent
+}
+\ifChartRussian
+  \hypersetup{pdflang={ru-RU}}
+\else
+  \hypersetup{pdflang={en}}
+\fi
+
+\begin{luacode*}
+local openStrings = {64, 59, 55, 50, 45, 40} -- Sounding MIDI pitches, strings 1-6.
+
+-- Rows are string groups 1-3 through 4-6. Columns are root position and
+-- first and second inversions. Each triple runs from the bass string up.
+-- Choose the lowest compact fretted position for each combination.
+local voicings = {
+  major = {
+    {{5, 5, 3}, {9, 8, 8},    {12, 13, 12}},
+    {{10, 9, 8}, {14, 12, 13}, {5, 5, 5}},
+    {{15, 14, 12}, {7, 5, 5},  {10, 10, 9}},
+    {{8, 7, 5}, {12, 10, 10},  {3, 3, 2}},
+  },
+  minor = {
+    {{5, 4, 3}, {8, 8, 8},    {12, 13, 11}},
+    {{10, 8, 8}, {13, 12, 13}, {5, 5, 4}},
+    {{15, 13, 12}, {6, 5, 5},  {10, 10, 8}},
+    {{8, 6, 5}, {11, 10, 10},  {3, 3, 1}},
+  },
+}
+
+function PrintTriadVoicings(quality)
+  local degrees = {[0] = "1", [7] = "5"}
+  if quality == "major" then
+    degrees[4] = "3"
+  else
+    degrees[3] = "♭3"
+  end
+  for row, group in ipairs(voicings[quality]) do
+    local bassString = row + 2
+    for column, frets in ipairs(group) do
+      local firstFret = math.min(table.unpack(frets))
+      local notes = {}
+      for index, fret in ipairs(frets) do
+        local stringNumber = bassString - index + 1
+        local pitchClass = (openStrings[stringNumber] + fret) % 12
+        notes[index] = string.format("%d/%d/%s", stringNumber, fret, degrees[pitchClass])
+      end
+      tex.sprint(string.format([[\DrawTriad{%d}{%d}{%d}{%d}{%s}]],
+        row, column, firstFret, bassString, table.concat(notes, ",")))
+    end
+  end
+end
+\end{luacode*}
+
+% Coordinates and font sizes are in PDF points, measured from the bottom left.
+\newcommand{\ChartText}[6][base west]{%
+  \node[anchor=#1,inner sep=0pt,outer sep=0pt,text=#5,
+    font=\fontsize{#4bp}{#4bp}\selectfont] at ({#2},{#3}) {#6};%
+}
+\newcommand{\ChartLeft}{34}
+\newcommand{\ChartRight}{808}
+\newcommand{\GridLeft}{120}
+\newcommand{\GridTop}{452}
+\newcommand{\RowHeight}{82}
+\newcommand{\ColumnWidth}{(\ChartRight-\GridLeft)/3}
+\newcommand{\ColumnLeft}[1]{\GridLeft+(\ColumnWidth)*(#1-1)}
+\newcommand{\ColumnCenter}[1]{\ColumnLeft{#1}+\ColumnWidth/2}
+\newcommand{\RowTop}[1]{\GridTop-\RowHeight*(#1-1)}
+
+\newcommand{\TriadColumn}[3]{%
+  \ChartText[base]{\ColumnCenter{#1}}{472}{12}{ChartAccent}{\bfseries#2}%
+  \ChartText[base]{\ColumnCenter{#1}}{458}{9.5}{ChartInk}{#3}%
+}
+
+\newcommand{\DrawGrid}[2]{%
+  \fill[ChartHeader] (\ChartLeft,\GridTop) rectangle (\ChartRight,490);
+  \fill[ChartStripe] (\ChartLeft,124) rectangle (\GridLeft,\GridTop);
+  \ChartText{46}{466}{11}{ChartAccent}{\bfseries\Localize{Струны}{Strings}}%
+  \TriadColumn{1}{\Localize{Основное положение}{Root position}}%
+    {\Localize{Основной тон в басу}{Root in bass} · #1}%
+  \TriadColumn{2}{\Localize{Первое обращение}{First inversion}}%
+    {\Localize{Терция в басу}{Third in bass} · #1/#2}%
+  \TriadColumn{3}{\Localize{Второе обращение}{Second inversion}}%
+    {\Localize{Квинта в басу}{Fifth in bass} · #1/G}%
+  \foreach \row in {1,...,5} {%
+    \draw[ChartRule,line width=.55bp] (\ChartLeft,{\RowTop{\row}})
+      -- (\ChartRight,{\RowTop{\row}});
+  }%
+  \foreach \column in {1,...,3} {%
+    \draw[ChartRule,line width=.55bp] ({\ColumnLeft{\column}},124)
+      -- ({\ColumnLeft{\column}},490);
+  }%
+  \foreach \row in {1,...,4} {%
+    \pgfmathtruncatemacro{\lastString}{\row+2}%
+    \ChartText{46}{\RowTop{\row}-46}{18}{ChartInk}{\bfseries\row--\lastString}%
+  }%
+}
+
+\newcommand{\FretWidth}{38}
+\newcommand{\StringY}[1]{-24-9*(#1-1)}
+
+% Draw a fretboard window whose first column is the lowest fret used.
+% The string numbers and fret numbers reflect the full guitar, not the window.
+\newcommand{\DrawTriad}[5]{%
+  \begin{scope}[shift={({\ColumnLeft{#2}+51},{\RowTop{#1}})}]
+    \foreach \fretOffset in {0,...,3} {%
+      \pgfmathtruncatemacro{\fretNumber}{#3+\fretOffset}%
+      \ChartText[base]{\FretWidth*(\fretOffset+.5)}{-14}{9.5}{ChartMuted}{\fretNumber}%
+    }%
+    \foreach \edge in {0,...,4} {%
+      \draw[ChartRule,line width=.6bp] ({\FretWidth*\edge},{\StringY{1}})
+        -- ({\FretWidth*\edge},{\StringY{6}});
+    }%
+    \foreach \stringNumber in {1,...,6} {%
+      \pgfmathtruncatemacro{\played}{\stringNumber >= #4-2 && \stringNumber <= #4}%
+      \ifnum\played=1\relax
+        \draw[ChartMuted,line width=.48bp] (0,{\StringY{\stringNumber}})
+          -- ({4*\FretWidth},{\StringY{\stringNumber}});
+        \ChartText[center]{-25}{\StringY{\stringNumber}}{9}{ChartInk}{\stringNumber}%
+      \else
+        \draw[ChartRule,line width=.45bp] (0,{\StringY{\stringNumber}})
+          -- ({4*\FretWidth},{\StringY{\stringNumber}});
+        \ChartText[center]{-25}{\StringY{\stringNumber}}{9}{ChartMuted}{\stringNumber}%
+        \ChartText[center]{-11}{\StringY{\stringNumber}}{9}{ChartInk}{×}%
+      \fi
+    }%
+    \foreach \stringNumber/\fretNumber/\degree in {#5} {%
+      \pgfmathsetmacro{\centerX}{\FretWidth*(\fretNumber-#3+.5)}%
+      \ifdefstring{\degree}{1}{\def\DotColor{ChartAccent}}{\def\DotColor{ChartInk}}%
+      \fill[\DotColor] ({\centerX-8},{\StringY{\stringNumber}}) circle[radius=2.9bp];
+      \node[anchor=west,fill=white,inner xsep=1.1bp,inner ysep=0pt,
+        text=ChartInk,font=\bfseries\fontsize{9bp}{9bp}\selectfont]
+        at ({\centerX-2},{\StringY{\stringNumber}}) {\degree};
+    }%
+  \end{scope}%
+}
+
+\newcommand{\DrawGuide}[2]{%
+  \ChartText{\ChartLeft}{107}{10.5}{ChartInk}{%
+    \bfseries\Localize{На схемах}{Reading the diagrams}\quad\normalfont
+    \Localize{Сверху тонкая струна. Числа над сеткой обозначают лады, × означает, что струна не звучит.}%
+      {The thinnest string is at the top. Numbers above the grid are frets. × marks an unplayed string.}}%
+  \ChartText{\ChartLeft}{89}{10.5}{ChartInk}{%
+    \bfseries\Localize{Транспонирование}{Transposing}\quad\normalfont
+    \Localize{Найдите точку 1 и сдвиньте всю форму на тех же струнах на нужное число ладов.}%
+      {Find the dot marked 1 and shift the whole shape by the same number of frets on the same strings.}}%
+  \ChartText{\ChartLeft}{74}{10.5}{ChartInk}{%
+    \Localize{При таком сдвиге тип трезвучия и обращение сохраняются, если все три ноты остаются на ладах.}%
+      {Chord quality and inversion stay the same as long as all three notes stay on fretted positions.}%
+    \enspace \Localize{На два лада вверх}{Up two frets}: #1 → #2.}%
+}
+
+\newcommand{\DrawFooter}{%
+  \draw[ChartRule,line width=.65bp] (\ChartLeft,63) -- (\ChartRight,63);
+  \ChartText{\ChartLeft}{46}{9.5}{ChartMuted}{%
+    \bfseries\textcolor{ChartAccent}{\Localize{Источники}{Sources}}\quad\normalfont
+    Open Music Theory ·
+    \href{https://pressbooks.nebraska.edu/openmusictheory/chapter/triads/}
+      {\Localize{трезвучия}{triads}} ·
+    \href{https://pressbooks.nebraska.edu/openmusictheory/chapter/inversion-and-figured-bass/}
+      {\Localize{обращения}{inversions}}}%
+  \ChartText{\ChartLeft}{30}{9.5}{ChartMuted}{%
+    \bfseries\textcolor{ChartAccent}{\Localize{См. также}{See also}}\quad\normalfont
+    \href{https://github.com/zhunkoff/music-reference/blob/main/guitar/fretboard/6-string-fretboard.\ChartLanguage.pdf}
+      {\Localize{карта грифа}{fretboard map}} ·
+    \href{https://github.com/zhunkoff/music-reference/blob/main/theory/intervals/intervals.\ChartLanguage.pdf}
+      {\Localize{музыкальные интервалы}{musical intervals}} ·
+    \href{https://github.com/zhunkoff/music-reference/blob/main/theory/harmony/chord-construction.\ChartLanguage.pdf}
+      {\Localize{построение аккордов}{chord construction}}}%
+  \ChartText[base east]{\ChartRight}{30}{9.5}{ChartMuted}{%
+    © 2026 \href{https://github.com/zhunkoff/music-reference}{Sergey Zhunkov} ·
+    \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0}}%
+}
+
+\newcommand{\ChartPage}[6]{%
+  \AddToHookNext{shipout/background}{%
+    \put(0,-\paperheight){%
+      \begin{tikzpicture}[overlay,x=1bp,y=1bp]
+        \ChartText{\ChartLeft}{548}{28}{ChartInk}{\bfseries\ChartTitle}%
+        \ChartText{\ChartLeft}{521}{16}{ChartAccent}{\bfseries#2}%
+        \ChartText[base east]{\ChartRight}{523}{11}{ChartMuted}{%
+          \Localize{Стандартный строй}{Standard tuning} (6→1)\quad E2–A2–D3–G3–B3–E4}%
+        \ChartText{\ChartLeft}{501}{10.5}{ChartInk}{%
+          \Localize{Ступени}{Degrees}\quad
+          \textbf{1} = C (\Localize{основной тон}{root})\enspace ·\enspace
+          \textbf{#4} = #3 (\Localize{терция}{third})\enspace ·\enspace
+          \textbf{5} = G (\Localize{квинта}{fifth})}%
+        \ChartText[base east]{\ChartRight}{501}{10.5}{ChartInk}{%
+          \Localize{Самая низкая звучащая нота определяет обращение.}%
+            {The lowest sounding note determines the inversion.}}%
+        \DrawGrid{#5}{#3}%
+        \directlua{PrintTriadVoicings("#1")}%
+        \DrawGuide{#5/#3}{#6}%
+        \DrawFooter
+      \end{tikzpicture}%
+    }%
+  }%
+  \null
+}
+
+\begin{document}
+\ChartPage{major}{\Localize{Мажорное трезвучие}{Major triad} · C}{E}{3}{C}{D/F♯}
+\newpage
+\ChartPage{minor}{\Localize{Минорное трезвучие}{Minor triad} · Cm}{E♭}{♭3}{Cm}{Dm/F}
+\end{document}
