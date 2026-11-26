@@ -13,6 +13,10 @@ defaults:
   # The language is part of each PDF filename, for example intervals.en.pdf.
   language: en
 
+  # Accent color for all documents and variants, as a quoted #RRGGBB value.
+  # Set this only in defaults.
+  accent_color: "#195755"
+
   # Guitar chord chart only. Use the YAML booleans true (numbered dots)
   # or false (plain dots, with the -dots suffix in the PDF filename).
   show_finger_numbers: true

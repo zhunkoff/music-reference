@@ -290,10 +290,11 @@ repository root and with forward slashes.
 | Key | Values | Sources |
 | --- | --- | --- |
 | `language` | `en` or `ru` | All registered documents |
+| `accent_color` | Quoted `"#RRGGBB"` with six hexadecimal digits | All registered documents, under `defaults` only |
 | `show_finger_numbers` | YAML boolean `true` or `false` | Guitar chord chart |
 | `fretboard_labels` | `notes` or `octaves` | Guitar fretboard map |
 
-The built-in defaults match the TeX sources (`en`, `true`, and `notes`).
+The built-in defaults match the TeX sources (`en`, `"#195755"`, `true`, and `notes`).
 Values in `defaults` override those settings for sources that support them.
 An entry in `documents` takes precedence for that source. Explicit positional
 arguments take precedence for the current invocation. Omitted arguments use
@@ -305,6 +306,7 @@ options unsupported by the specified source.
 ```yaml
 defaults:
   language: en
+  accent_color: "#195755"
   show_finger_numbers: false
   fretboard_labels: notes
 documents:
@@ -324,6 +326,12 @@ selects English and note names for that map.
 `just build-all` always builds both languages and both fretboard label modes.
 It uses the configured finger-number setting unless an argument overrides it.
 
+`defaults.accent_color` sets the accent for standalone PDFs and all sections
+of the combined PDF in both languages and all chart variants. Keep the quotes
+so YAML reads the leading `#` as part of the string. Rerun the build after changing
+the color to update the PDFs at the same paths. Direct LuaLaTeX builds use the TeX
+default of `#195755`.
+
 ### Combined PDF
 
 ```sh
@@ -337,7 +345,7 @@ The book uses its explicit language argument, then `defaults.language`, then
 Per-document language settings apply to standalone PDFs. The book still uses
 the effective finger-number and fretboard options for its sections.
 The output is `build/music-reference.en.pdf` or `build/music-reference.ru.pdf`.
-Changing a section variant rebuilds the book at the same path.
+Changing a section variant or the accent color rebuilds the book at the same path.
 
 The build compiles the selected individual variants and includes each once in
 the order defined in [latexmkrc](latexmkrc), with a bookmark for each section.
@@ -536,8 +544,10 @@ require build parameters.
 Register each document's repository-relative TeX path in `@documents` in
 [`latexmkrc`](latexmkrc) with its reference anchor, English and Russian bookmark
 titles, and any supported variant keys. All registered documents support
-`language` through `\ChartLanguage`. Documents with fingerings can declare
-`show_finger_numbers` and use `\ShowFingerNumbers` (`true` or `false`).
+`language` through `\ChartLanguage` and define `ChartAccent` from the HTML
+color macro `\ChartAccentHex`, with a fallback of `195755` for direct builds.
+Documents with fingerings can declare `show_finger_numbers` and use
+`\ShowFingerNumbers` (`true` or `false`).
 The registry also supplies `@default_files` for latexmk and cleanup.
 
 ## Troubleshooting
