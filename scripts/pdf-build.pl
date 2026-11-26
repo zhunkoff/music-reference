@@ -3,18 +3,21 @@
 
 use strict;
 use warnings;
+use File::Basename ();
 use File::Path ();
+use File::Spec ();
 use File::Temp ();
 use JSON::PP ();
 
 # Loaded after latexmkrc, which owns the document registry and engine settings.
 our @documents;
 
-# The first value for each option matches the standalone TeX default.
+# The defaults match those in the standalone TeX sources.
 my %build_options = (
     language            => { macro => 'ChartLanguage', values => [qw(en ru)] },
     show_finger_numbers => { macro => 'ShowFingerNumbers', values => [qw(true false)] },
     fretboard_labels    => { macro => 'FretboardLabels', values => [qw(notes octaves)] },
+    accent_color        => { default => '195755' },
 );
 
 sub supported_build_options {
@@ -24,6 +27,12 @@ sub supported_build_options {
 
 sub validate_build_value {
     my ($name, $value, $location) = @_;
+    if ($name eq 'accent_color') {
+        die "$location: expected a quoted #RRGGBB color (for example \"#195755\")\n"
+            unless defined $value && !ref($value) && $value =~ /\A#([0-9A-Fa-f]{6})\z/;
+        return uc $1;
+    }
+
     my @allowed = @{$build_options{$name}{values}};
     if (!defined($value) || ref($value) || !grep { $value eq $_ } @allowed) {
         die "$location: expected " . join(' or ', @allowed) . "\n";
@@ -118,9 +127,26 @@ sub resolve_pdf {
     };
 }
 
+sub write_build_file {
+    my ($path, $contents) = @_;
+    if (open my $existing, '<:raw', $path) {
+        local $/;
+        my $previous = <$existing>;
+        return $path if defined $previous && $previous eq $contents;
+    }
+
+    my $directory = File::Basename::dirname($path);
+    File::Path::make_path($directory);
+    my ($output, $temporary) = File::Temp::tempfile(DIR => $directory, UNLINK => 1);
+    binmode $output, ':raw' or die "Cannot set binary mode for $temporary: $!\n";
+    print {$output} $contents or die "Cannot write $temporary: $!\n";
+    close $output or die "Cannot close $temporary: $!\n";
+    rename $temporary, $path or die "Cannot publish $path: $!\n";
+    return $path;
+}
+
 sub write_book_source {
     my ($language, @plan) = @_;
-    my $book_source = "build/music-reference.$language.tex";
     my $title_index = $language eq 'en' ? 2 : 3;
     my $sections = join '', map {
         my $anchor = $_->{document}[1];
@@ -130,20 +156,7 @@ sub write_book_source {
     my $contents = "\\def\\ChartLanguage{$language}\n"
         . "\\def\\BookDocuments{%\n$sections}\n"
         . "\\input{../book/music-reference.tex}\n";
-
-    if (open my $existing, '<:raw', $book_source) {
-        local $/;
-        my $previous = <$existing>;
-        return $book_source if defined $previous && $previous eq $contents;
-    }
-
-    File::Path::make_path('build');
-    my ($output, $temporary) = File::Temp::tempfile(DIR => 'build', UNLINK => 1);
-    binmode $output, ':raw' or die "Cannot set binary mode for $temporary: $!\n";
-    print {$output} $contents or die "Cannot write $temporary: $!\n";
-    close $output or die "Cannot close $temporary: $!\n";
-    rename $temporary, $book_source or die "Cannot publish $book_source: $!\n";
-    return $book_source;
+    return write_build_file("build/music-reference.$language.tex", $contents);
 }
 
 sub run_latexmk {
@@ -188,8 +201,14 @@ sub build_pdfs {
         @plan = map { resolve_pdf($_, $config, \%cli) } @selected;
     }
 
+    # latexmk tracks files read by TeX, but changes to -usepretex alone do not trigger a rebuild.
+    my $accent_color = $config->{defaults}{accent_color} // $build_options{accent_color}{default};
+    my $accent_source = write_build_file('build/accent-color.tex', "\\def\\ChartAccentHex{$accent_color}%\n");
     for my $pdf (@plan) {
-        run_latexmk($pdf->{document}[0], "-jobname=%A.$pdf->{suffix}", "-usepretex=$pdf->{pretex}");
+        my $source = $pdf->{document}[0];
+        my $accent_input = File::Spec->abs2rel($accent_source, File::Basename::dirname($source));
+        $accent_input =~ tr{\\}{/};
+        run_latexmk($source, "-jobname=%A.$pdf->{suffix}", "-usepretex=$pdf->{pretex}\\input{$accent_input}");
     }
     run_latexmk(write_book_source($book_language, @plan)) if defined $book_language;
     exit 0;
