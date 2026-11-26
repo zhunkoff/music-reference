@@ -26,6 +26,16 @@ same layout.
 - [Russian PDF with note names](guitar/fretboard/6-string-fretboard.ru.pdf), [with octave numbers](guitar/fretboard/6-string-fretboard.ru-octaves.pdf)
 - [Shared TeX source](guitar/fretboard/6-string-fretboard.tex)
 
+### Guitar triad inversions
+
+Two landscape A4 pages with 24 movable C major and C minor shapes in standard
+tuning. Each page shows root position and both inversions on four groups of
+adjacent strings, with chord degrees, fret numbers, and a transposition guide.
+
+- [English PDF](guitar/triads/triad-inversions.en.pdf)
+- [Russian PDF](guitar/triads/triad-inversions.ru.pdf)
+- [Shared TeX source](guitar/triads/triad-inversions.tex)
+
 ### Musical intervals
 
 A two-page landscape A4 reference with interval names, semitone distances, and
@@ -79,9 +89,11 @@ PDFs are saved beside their sources. Use `just build ru` for Russian or
 A single-language build produces the fretboard with note names only.
 Use `just build-fretboard en octaves` to build only the English fretboard map
 with octave numbers.
-Guitar finger numbers are shown by default. Use `just build en false` for English
-with plain dots, or `just build-all false` for both languages without numbers.
-The interval and chord construction references each have one PDF per language.
+The guitar chord chart shows finger numbers by default. Use `just build en false`
+for English with plain dots, or `just build-all false` for both languages without
+finger numbers.
+The triad inversion, interval, and chord construction references each have one
+PDF per language.
 The note-frequency chart has the same content in both finger-number modes.
 See the [build guide](BUILD.md) for Windows, Linux, and macOS installation
 and detailed build instructions.

@@ -5,11 +5,11 @@
 set windows-shell := ["powershell.exe", "-NoLogo", "-NoProfile", "-Command"]
 
 # Build in English (default) or Russian; set fingers to false for plain dots.
-build language="en" fingers="true": (_build-documents language fingers) (build-fretboard language "notes") (build-intervals language) (build-chord-construction language)
+build language="en" fingers="true": (_build-documents language fingers) (build-fretboard language "notes") (build-intervals language) (build-chord-construction language) (build-triads language)
 
 _build-documents language fingers:
     latexmk \
-        -e '@default_files = grep { $_ ne $fretboard_source && $_ ne $intervals_source && $_ ne $chord_construction_source } @default_files;' \
+        -e '@default_files = grep { $_ ne $fretboard_source && $_ ne $intervals_source && $_ ne $chord_construction_source && $_ ne $triads_source } @default_files;' \
         '-jobname=%A.{{ if language =~ "^(en|ru)$" { language } else { error("Language must be en or ru") } }}{{ if fingers == "true" { "" } else if fingers == "false" { "-dots" } else { error("Finger numbers must be true or false") } }}' \
         '-usepretex={{ '\def\ChartLanguage{' + language + '}\def\ShowFingerNumbers{' + fingers + '}' }}'
 
@@ -31,6 +31,13 @@ build-intervals language="en":
 build-chord-construction language="en":
     latexmk \
         -e '@default_files = ($chord_construction_source);' \
+        '-jobname=%A.{{ if language =~ "^(en|ru)$" { language } else { error("Language must be en or ru") } }}' \
+        '-usepretex={{ '\def\ChartLanguage{' + language + '}' }}'
+
+# Build the guitar triad inversion charts in English (default) or Russian.
+build-triads language="en":
+    latexmk \
+        -e '@default_files = ($triads_source);' \
         '-jobname=%A.{{ if language =~ "^(en|ru)$" { language } else { error("Language must be en or ru") } }}' \
         '-usepretex={{ '\def\ChartLanguage{' + language + '}' }}'
 
