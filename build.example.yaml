@@ -1,0 +1,45 @@
+# Copyright (c) 2026 Sergey Zhunkov.
+# SPDX-License-Identifier: CC-BY-4.0
+
+# To customize a checkout, copy this file to build.yaml in the repository root.
+# A checkout without build.yaml builds with the values shown below.
+# A local build.yaml requires YAML::PP 0.027 or newer for latexmk's Perl.
+
+# Settings take precedence in this order, from lowest to highest:
+# TeX defaults, defaults below, per-source overrides, explicit just arguments.
+# Global options apply to the sources that support them.
+defaults:
+  # Language for all documents. Use en (English) or ru (Russian).
+  # The language is part of each PDF filename, for example intervals.en.pdf.
+  language: en
+
+  # Guitar chord chart only. Use the YAML booleans true (numbered dots)
+  # or false (plain dots, with the -dots suffix in the PDF filename).
+  show_finger_numbers: true
+
+  # Guitar fretboard map only. Use notes (note names only) or octaves
+  # (note names with sounding octave numbers, with the -octaves suffix).
+  fretboard_labels: notes
+
+# just build-all builds both languages and both fretboard label modes.
+# just build-book uses one language for all sections. It takes the explicit
+# language argument or defaults.language and honors each section's variants.
+
+# For per-source overrides, replace the empty mapping below with documents:
+# and uncomment the desired source paths and settings. Paths are relative to
+# the repository root, use forward slashes, and match the registry in latexmkrc.
+documents: {}
+  # guitar/chords/6-string-standard-tuning.tex:
+  #   language: en
+  #   show_finger_numbers: false
+  # theory/pitch/note-frequencies.tex:
+  #   language: ru
+  # guitar/fretboard/6-string-fretboard.tex:
+  #   language: ru
+  #   fretboard_labels: octaves
+  # theory/intervals/intervals.tex:
+  #   language: en
+  # theory/harmony/chord-construction.tex:
+  #   language: en
+  # guitar/triads/triad-inversions.tex:
+  #   language: en

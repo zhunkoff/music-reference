@@ -95,10 +95,10 @@ just build-book
 
 Use `just build-book ru` for the Russian book. Both files are written to `build/`.
 
-Use `just build` for individual PDFs in English, `just build ru` for Russian,
-or `just build-all` for both languages and all four fretboard PDFs. Individual
-PDFs are saved beside their sources.
-A single-language build produces the fretboard with note names only.
+Use `just build` for individual PDFs. To customize the build, copy
+[build.example.yaml](build.example.yaml) to a local `build.yaml`.
+Use `just build ru` to select Russian or `just build-all` for both languages and
+all four fretboard PDFs. Individual PDFs are saved beside their sources.
 Use `just build-fretboard en octaves` to build only the English fretboard map
 with octave numbers.
 The guitar chord chart shows finger numbers by default. Use `just build en false`
@@ -106,7 +106,7 @@ for English with plain dots, or `just build-all false` for both languages withou
 finger numbers.
 The triad inversion, interval, and chord construction references each have one
 PDF per language.
-The note-frequency chart has the same content in both finger-number modes.
+The note-frequency chart has one PDF per language.
 See the [build guide](BUILD.md) for Windows, Linux, and macOS installation
 and detailed build instructions.
 

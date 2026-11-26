@@ -36,6 +36,10 @@ Install `just` separately using the platform instructions below. Official binary
 downloads are also available for platforms with older package repositories.
 [just installation](https://just.systems/man/en/installation.html).
 
+The optional local `build.yaml` requires YAML::PP 0.027 or newer for the Perl
+that runs latexmk. The default build in a fresh checkout and direct LuaLaTeX
+compilation work without this module. [YAML::PP documentation](https://metacpan.org/pod/YAML::PP).
+
 ## Installing the tools
 
 ### Windows
@@ -176,6 +180,27 @@ brew install --cask mactex
 brew install just
 ```
 
+### YAML::PP
+
+Follow these steps if you plan to use a local `build.yaml`.
+
+On Linux and macOS, install YAML::PP through your package manager or run
+`cpan YAML::PP` with the Perl used by latexmk. If CPAN offers a choice of
+installation directories, choose `local::lib` for a user installation and
+apply the shell setup that it prints. For example, add the following to your
+shell startup file if you installed modules under `~/perl5`.
+
+```sh
+export PERL5LIB="$HOME/perl5/lib/perl5${PERL5LIB:+:$PERL5LIB}"
+```
+
+On Windows, install a full Perl distribution such as Strawberry Perl, put its
+`perl.exe` on `PATH`, and run `cpan YAML::PP` from a new PowerShell window.
+Set `TEXLIVE_WINDOWS_TRY_EXTERNAL_PERL = 1` in the `texmf.cnf` at the root of
+the TeX Live installation so its launcher uses that Perl for latexmk. Use the
+check below to confirm that latexmk sees the module. Build execution on Windows
+has yet to be verified. [TeX Live guide](https://tug.org/texlive/doc/texlive-en/texlive-en.html).
+
 ## Checking the installation
 
 In PowerShell on Windows, check which executable will run.
@@ -216,6 +241,12 @@ kpsewhich bookmark.sty
 kpsewhich xcolor.sty
 ```
 
+If you use a local `build.yaml`, check that latexmk can load YAML::PP.
+
+```sh
+latexmk -e 'require YAML::PP; YAML::PP->VERSION(0.027);' -v
+```
+
 ## Building documents
 
 Download or clone the repository and open PowerShell on Windows, or a terminal
@@ -230,9 +261,11 @@ just build-all
 
 | Command | Action |
 | --- | --- |
-| `just build` or `just build en` | Build every registered document in English |
+| `just build` | Build every registered document with the configured options |
+| `just build en` | Build every registered document in English |
 | `just build ru` | Build every registered document in Russian |
-| `just build-book` or `just build-book en` | Build the English combined PDF |
+| `just build-book` | Build the combined PDF in the configured default language |
+| `just build-book en` | Build the English combined PDF |
 | `just build-book ru` | Build the Russian combined PDF |
 | `just build-all` | Build every registered document in both languages, including all four fretboard PDFs |
 | `just build en false` | Build English documents without finger numbers |
@@ -245,6 +278,52 @@ just build-all
 | `just clean` | Remove auxiliary files for registered documents |
 | `just --list` | List available commands |
 
+### Build configuration
+
+To customize the build, copy [build.example.yaml](build.example.yaml) to
+`build.yaml` in the repository root and edit the copy. Git ignores the local file.
+The example lists every registered source and the options it supports.
+Both `defaults` and `documents` are optional mappings. In `documents`, use the
+exact paths from the registry in [latexmkrc](latexmkrc), relative to the
+repository root and with forward slashes.
+
+| Key | Values | Sources |
+| --- | --- | --- |
+| `language` | `en` or `ru` | All registered documents |
+| `show_finger_numbers` | YAML boolean `true` or `false` | Guitar chord chart |
+| `fretboard_labels` | `notes` or `octaves` | Guitar fretboard map |
+
+The built-in defaults match the TeX sources (`en`, `true`, and `notes`).
+Values in `defaults` override those settings for sources that support them.
+An entry in `documents` takes precedence for that source. Explicit positional
+arguments take precedence for the current invocation. Omitted arguments use
+the configuration. A missing configuration file falls back to the built-in
+defaults. The build checks the entire file before starting LaTeX and reports
+invalid syntax, duplicate or unknown keys, unknown paths, invalid values, and
+options unsupported by the specified source.
+
+```yaml
+defaults:
+  language: en
+  show_finger_numbers: false
+  fretboard_labels: notes
+documents:
+  guitar/chords/6-string-standard-tuning.tex:
+    show_finger_numbers: true
+  guitar/fretboard/6-string-fretboard.tex:
+    language: ru
+    fretboard_labels: octaves
+```
+
+With these settings, `just build` produces numbered chords in English and
+the Russian fretboard map with octave numbers. `just build en false` selects
+English for all documents and plain dots for the chord chart. The fretboard
+map still uses octave numbers. `just build-fretboard en notes` explicitly
+selects English and note names for that map.
+
+`just build-all` always builds both languages and both fretboard label modes.
+It uses the configured finger-number setting unless an argument overrides it.
+
 ### Combined PDF
 
 ```sh
@@ -253,23 +332,25 @@ just build-book en
 just build-book ru
 ```
 
-The first two commands build `build/music-reference.en.pdf`. The third builds
-`build/music-reference.ru.pdf`. The book includes each registered document once,
-in the order defined in [latexmkrc](latexmkrc), with a bookmark for each section.
-It uses the chord chart with finger numbers and the fretboard map with note
-names. Use the individual build commands for the other variants.
+The book uses its explicit language argument, then `defaults.language`, then
+`en`. This language applies to every section, the bookmarks, and the metadata.
+Per-document language settings apply to standalone PDFs. The book still uses
+the effective finger-number and fretboard options for its sections.
+The output is `build/music-reference.en.pdf` or `build/music-reference.ru.pdf`.
+Changing a section variant rebuilds the book at the same path.
 
-The build compiles the individual documents through the usual `just build`
-recipe. LuaLaTeX then runs [the book wrapper](book/music-reference.tex).
+The build compiles the selected individual variants and includes each once in
+the order defined in [latexmkrc](latexmkrc), with a bookmark for each section.
+LuaLaTeX runs [the book wrapper](book/music-reference.tex).
 `pdfpages` inserts the pages at their original sizes, and `newpax` restores
 clickable links. Links between book sections open the corresponding pages.
 The separate PDFs link to the matching sections of the language's README.
 The `build/` directory contains the books and their intermediate files.
 
 To prepare a release, set the download links in both READMEs to the release tag.
-Build both language versions from the commit being released, check the
-bookmarks and links, and manually attach both PDFs to the GitHub Release
-for that tag. Keep generated PDFs out of Git tracking.
+Build both language versions from a fresh checkout of the release commit.
+Check the bookmarks and links, then manually attach both PDFs to the GitHub
+Release for that tag. Keep generated PDFs out of Git tracking.
 
 ### Individual PDFs
 
@@ -314,9 +395,7 @@ Only finger numbers inside dots, including dots on barres, are hidden. Dots,
 barres, fret numbers, and open/muted string markings stay in place. The legend
 describes plain dots instead of finger numbers.
 
-The note-frequency chart has no finger numbers. These commands also create
-`note-frequencies.en-dots.pdf` and `note-frequencies.ru-dots.pdf` with unchanged
-chart content; those duplicate variants do not need to be published.
+The note-frequency chart always uses its standard language-specific filename.
 
 For a direct LuaLaTeX build of the guitar chart, define `\ShowFingerNumbers` as
 `false` before loading the source. Its default is `true`. Invalid language or
@@ -339,9 +418,9 @@ the same grid.
 | `6-string-fretboard.ru.pdf` | Russian, note names |
 | `6-string-fretboard.ru-octaves.pdf` | Russian, note names with sounding octave numbers |
 
-`just build-all` builds all four PDFs. `just build` and `just build ru` build the
-note-name variant in the selected language. To build a single fretboard PDF,
-pass the language and label mode to `just build-fretboard`.
+`just build-all` builds all four PDFs. `just build` and `just build ru` use the
+configured labels. To build just the map, pass the language and label mode to
+`just build-fretboard` or omit them to use the configuration.
 
 ```sh
 just build-fretboard en notes
@@ -350,8 +429,8 @@ just build-fretboard ru notes
 just build-fretboard ru octaves
 ```
 
-The defaults are `en` and `notes`. For direct LuaLaTeX builds, set `\ChartLanguage`
-and `\FretboardLabels` before loading the source. Use `notes` or `octaves` for
+Direct LuaLaTeX builds default to `en` and `notes`. Set `\ChartLanguage` and
+`\FretboardLabels` before loading the source. Use `notes` or `octaves` for
 the labels. In a print check, use A4 landscape and 100% / actual size in both
 color and grayscale. Check all fret labels and accidentals, the nut line
 after column 0, and the outline around fret 12.
@@ -454,13 +533,12 @@ require build parameters.
 
 ### Adding a document
 
-Add the path to each document's main TeX source to `@default_files` in
-[`latexmkrc`](latexmkrc), relative to the repository root. `just build`,
-`just build-all`, and `just clean` use this list. Shared LuaLaTeX settings are also
-stored in that file. Bilingual documents can use `\ChartLanguage` with `en` and
-`ru`, following the guitar chart's source.
-Documents with fingerings can use `\ShowFingerNumbers` (`true` or `false`) to
-support both numbered and plain-dot variants.
+Register each document's repository-relative TeX path in `@documents` in
+[`latexmkrc`](latexmkrc) with its reference anchor, English and Russian bookmark
+titles, and any supported variant keys. All registered documents support
+`language` through `\ChartLanguage`. Documents with fingerings can declare
+`show_finger_numbers` and use `\ShowFingerNumbers` (`true` or `false`).
+The registry also supplies `@default_files` for latexmk and cleanup.
 
 ## Troubleshooting
 
@@ -470,7 +548,7 @@ support both numbered and plain-dot variants.
 | `lualatex` is unavailable | Open a new shell and check the executable path. On Windows, check the TeX Live installer search-path option. On Linux, use the binary directory reported by the upstream installer if you installed TeX Live that way. |
 | A `.sty` file or Babel locale is missing | Use `kpsewhich` to check the file. Install its package through TeX Live Manager / MacTeX's TeX Live Utility, or through the Linux distribution's package manager (`apt`, `dnf`, `emerge`, or `zypper`). |
 | DejaVu Sans Condensed cannot be found | Check both `.ttf` files with `kpsewhich` and install the `dejavu` TeX Live package. The source loads these font files from the TeX installation. |
-| The TeX source file cannot be found | Check the path in `@default_files` in `latexmkrc`. Run `just` from the repository root or a directory inside it. |
+| The TeX source file cannot be found | Check the path in `@documents` in `latexmkrc`. Run `just` from the repository root or a directory inside it. |
 | Compilation stops with a LaTeX error | Read the first error in the matching `.log` file. Check `lualatex --version` and the packages listed above. |
 
 On macOS, MacTeX exposes its active executables through `/Library/TeX/texbin`. If
@@ -483,9 +561,9 @@ distribution's package manager. Upstream TeX Live installations use `tlmgr`.
 
 ## Verified environment
 
-The English and Russian builds with and without finger numbers, incremental
-builds, and cleanup have been checked on macOS 26.7.1 (Apple Silicon) with
-LuaHBTeX 1.21.0 from TeX Live
-2025, `latexmk` 4.86a, and `just` 1.21.0 and 1.59.0. Both guitar language versions
-contain two pages. Windows and Linux installation instructions were checked
-against the supplier documentation. Execution on those platforms remains to be verified.
+YAML configuration, the English and Russian variants, both combined PDFs,
+direct LuaLaTeX compilation, incremental builds, and cleanup were checked on
+macOS with LuaHBTeX 1.21.0 from TeX Live 2025, `latexmk` 4.86a, `just` 1.59.0,
+and YAML::PP 0.43.0. Windows and Linux installation instructions were checked
+against the supplier documentation. Build execution on those platforms
+remains to be verified.
