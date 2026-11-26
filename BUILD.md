@@ -24,6 +24,7 @@ Use `latexmk` 4.84 or newer for the project's cleanup hook.
 | Font selection | `fontspec` |
 | DejaVu Sans Condensed fonts | `dejavu` |
 | Page layout and document helpers | `geometry`, `etoolbox`, `hyperref` |
+| Combined PDF | `pdfpages`, `newpax`, `bookmark`, `xcolor` |
 
 A full TeX Live installation supplies these components and their dependencies
 and takes several gigabytes to download and install. The Gentoo instructions
@@ -209,6 +210,10 @@ kpsewhich DejaVuSansCondensed-Bold.ttf
 kpsewhich geometry.sty
 kpsewhich etoolbox.sty
 kpsewhich hyperref.sty
+kpsewhich pdfpages.sty
+kpsewhich newpax.sty
+kpsewhich bookmark.sty
+kpsewhich xcolor.sty
 ```
 
 ## Building documents
@@ -227,6 +232,8 @@ just build-all
 | --- | --- |
 | `just build` or `just build en` | Build every registered document in English |
 | `just build ru` | Build every registered document in Russian |
+| `just build-book` or `just build-book en` | Build the English combined PDF |
+| `just build-book ru` | Build the Russian combined PDF |
 | `just build-all` | Build every registered document in both languages, including all four fretboard PDFs |
 | `just build en false` | Build English documents without finger numbers |
 | `just build ru false` | Build Russian documents without finger numbers |
@@ -237,6 +244,34 @@ just build-all
 | `just build-triads en` | Build only the English guitar triad inversion charts |
 | `just clean` | Remove auxiliary files for registered documents |
 | `just --list` | List available commands |
+
+### Combined PDF
+
+```sh
+just build-book
+just build-book en
+just build-book ru
+```
+
+The first two commands build `build/music-reference.en.pdf`. The third builds
+`build/music-reference.ru.pdf`. The book includes each registered document once,
+in the order defined in [latexmkrc](latexmkrc), with a bookmark for each section.
+It uses the chord chart with finger numbers and the fretboard map with note
+names. Use the individual build commands for the other variants.
+
+The build compiles the individual documents through the usual `just build`
+recipe. LuaLaTeX then runs [the book wrapper](book/music-reference.tex).
+`pdfpages` inserts the pages at their original sizes, and `newpax` restores
+clickable links. Links between book sections open the corresponding pages.
+The separate PDFs link to the matching sections of the language's README.
+The `build/` directory contains the books and their intermediate files.
+
+To prepare a release, set the download links in both READMEs to the release tag.
+Build both language versions from the commit being released, check the
+bookmarks and links, and manually attach both PDFs to the GitHub Release
+for that tag. Keep generated PDFs out of Git tracking.
+
+### Individual PDFs
 
 English is the default language. `latexmk` performs repeat passes automatically
 and checks whether a document needs rebuilding. Repeating `just build` after a

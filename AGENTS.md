@@ -1,7 +1,8 @@
 # Repository guidance
 
-`music-reference` contains music reference charts and documents. Organize materials
-by instrument and topic, with each document's PDF and TeX source stored together.
+`music-reference` contains music reference charts and documents. Organize
+TeX sources by instrument and topic. Individual and combined PDFs are build
+outputs. Publish the combined PDFs as GitHub Release assets.
 
 ## TeX sources and languages
 
@@ -35,10 +36,14 @@ by instrument and topic, with each document's PDF and TeX source stored together
 ## Build and verification
 
 - Use the project's `just` recipes for standard builds and cleanup.
-- Register each new document's main TeX source in `@default_files` in
-  [latexmkrc](latexmkrc), using a path relative to the repository root.
+- Register each new document in `@documents` in [latexmkrc](latexmkrc), using a
+  repository-relative TeX path, an ID matching the `ref-<id>` anchors in both
+  READMEs, and bookmark titles in English and Russian. The registry defines
+  the order in the book.
 - After changing TeX, run `just build-all` and visually inspect both language
   PDFs. Check page layout, symbols, finger numbers, clipping, and overlaps.
+- After changing the book build, run `just build-book` and `just build-book ru`.
+  Check page sizes and orientation, bookmarks, and external and internal links.
 - For documentation changes, check local links and agreement between translations.
 
 ## Musical accuracy
