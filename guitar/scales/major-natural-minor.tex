@@ -5,48 +5,12 @@
 % From the repository root: just build-guitar-scales en
 % Set \ChartLanguage to en or ru before loading this source. English is the default.
 \documentclass[a4paper,landscape]{article}
-\usepackage[margin=0pt]{geometry}
-\usepackage{fontspec}
-\usepackage{babel}
-\usepackage{etoolbox}
-\usepackage{tikz}
-\usetikzlibrary{babel}
-\usepackage{luacode}
-\usepackage{hyperref}
-
-\providecommand{\ChartLanguage}{en}
-\newif\ifChartRussian
-\ifdefstring{\ChartLanguage}{ru}{%
-  \ChartRussiantrue
-  \babelprovide[import,main]{russian}
-  \babelprovide[import]{english}
+\IfFileExists{caged-map-common.tex}{%
+  \input{caged-map-common.tex}%
 }{%
-  \ifdefstring{\ChartLanguage}{en}{%
-    \babelprovide[import,main]{english}
-    \babelprovide[import]{russian}
-  }{%
-    \PackageError{guitar-scale-maps}{Unsupported ChartLanguage '\ChartLanguage'}
-      {Set ChartLanguage to en or ru.}%
-  }%
+  \input{guitar/scales/caged-map-common.tex}%
 }
 
-\setmainfont{DejaVuSansCondensed.ttf}[
-  BoldFont=DejaVuSansCondensed-Bold.ttf,
-  Ligatures=NoCommon,
-  RawFeature={-kern,-clig}
-]
-\pagestyle{empty}
-
-\definecolor{ChartInk}{RGB}{23,43,50}
-\definecolor{ChartMuted}{RGB}{70,91,99}
-\providecommand{\ChartAccentHex}{195755}
-\definecolor{ChartAccent}{HTML}{\ChartAccentHex}
-\definecolor{ChartRule}{RGB}{197,208,209}
-\definecolor{ChartStripe}{RGB}{244,247,247}
-\colorlet{ChartHeader}{ChartAccent!13!white}
-\colorlet{ChartHeading}{ChartAccent!33!ChartInk}
-
-\newcommand{\Localize}[2]{\ifChartRussian#1\else#2\fi}
 \newcommand{\ChartTitle}{\Localize{Карты гамм на грифе гитары}{Guitar scale maps}}
 \newcommand{\MajorTitle}{C \Localize{мажор}{major}}
 \newcommand{\MinorTitle}{A \Localize{натуральный минор}{natural minor}}
@@ -67,10 +31,6 @@
 \fi
 
 \begin{luacode*}
--- Sounding MIDI pitches, high to low (strings 1-6), as on the fretboard map.
-local open_strings = {
-  {64, "E4"}, {59, "B3"}, {55, "G3"}, {50, "D3"}, {45, "A2"}, {40, "E2"},
-}
 local major = {0, 2, 4, 5, 7, 9, 11}
 local natural_minor = {0, 2, 3, 5, 7, 8, 10}
 local scales = {
@@ -79,17 +39,6 @@ local scales = {
   D = {2, major, {"D", "E", "F♯", "G", "A", "B", "C♯"}},
   B = {11, natural_minor, {"B", "C♯", "D", "E", "F♯", "G", "A"}},
 }
-
--- CAGED letters come from transposing the corresponding open major chord
--- forms to C. Each window includes all scale notes on its inclusive frets.
--- A and E include the fret below their chord form. D spans five frets to
--- include the fret below its form and the 2nd-string tonic at fret 13.
--- The C form is shown at the octave so its full window has frets above 0.
--- A natural minor uses the same windows and labels degrees from A instead.
-local e_position = {"E", 7, 10}
-local positions = {{"A", 2, 5}, {"G", 5, 8}, e_position, {"D", 9, 13}, {"C", 12, 15}}
-local overview_frets = 24
-local example_shift = 2
 
 local function degree_label(intervals, degree)
   local alteration = intervals[degree] < major[degree] and "♭" or ""
@@ -106,127 +55,13 @@ end
 
 function PrintGridNotes(key, first_fret, last_fret)
   local tonic, intervals = table.unpack(scales[key])
-  local degrees_by_pitch = {}
-  for degree, interval in ipairs(intervals) do
-    degrees_by_pitch[(tonic + interval) % 12] = degree
+  local degrees = {}
+  for index in ipairs(intervals) do
+    degrees[index] = degree_label(intervals, index)
   end
-  for string_number, string_data in ipairs(open_strings) do
-    local open_pitch, open_note = table.unpack(string_data)
-    tex.sprint(string.format([[\StringLabel{%d}{%s}]], string_number, open_note))
-    for fret = first_fret, last_fret do
-      local degree = degrees_by_pitch[(open_pitch + fret) % 12]
-      if degree then
-        tex.sprint(string.format([[\FretDegree{%d}{%d}{%s}]],
-          string_number, fret, degree_label(intervals, degree)))
-      end
-    end
-  end
-end
-
-function PrintPositions(key, example)
-  for index, position in ipairs(positions) do
-    local name, first, last = table.unpack(position)
-    tex.sprint(string.format([[\PositionCard{%d}{%s}{%d}{%d}{%s}]],
-      index, name, first, last, key))
-  end
-  local name, first, last = table.unpack(e_position)
-  tex.sprint(string.format([[\ExampleCard{%s}{%d}{%d}{%s}]],
-    name, first + example_shift, last + example_shift, example))
-end
-
-function PrintCoverage()
-  -- Include the tail of the previous cycle and the start of the next.
-  -- Consecutive windows alternate between two lanes so their overlap is visible.
-  for octave = -1, 1 do
-    for index, position in ipairs(positions) do
-      local name, first, last = table.unpack(position)
-      first = math.max(1, first + 12 * octave)
-      last = math.min(overview_frets, last + 12 * octave)
-      if first <= last then
-        local lane = (octave * #positions + index) % 2
-        tex.sprint(string.format([[\CoverageBand{%s}{%d}{%d}{%d}]],
-          name, first, last, lane))
-      end
-    end
-  end
+  CagedMap.print_grid_notes(CagedMap.by_pitch(tonic, intervals, degrees), first_fret, last_fret)
 end
 \end{luacode*}
-
-% Coordinates and font sizes are in PDF points, measured from the bottom left.
-\newcommand{\ChartText}[6][base west]{%
-  \node[anchor=#1,inner sep=0pt,outer sep=0pt,text=#5,
-    font=\fontsize{#4bp}{#4bp}\selectfont] at ({#2},{#3}) {#6};%
-}
-\newcommand{\ChartLeft}{34}
-\newcommand{\ChartRight}{808}
-\newcommand{\OverviewGridLeft}{94}
-
-% Numbered fret cells increase to the right, with string 1 at the top.
-\newcommand{\FretEdge}[1]{\GridLeft+\FretWidth*(#1-\FirstFret)}
-\newcommand{\FretCenter}[1]{\FretEdge{#1+.5}}
-\newcommand{\StringEdge}[1]{\GridTop-19-17*(#1)}
-\newcommand{\StringCenter}[1]{\StringEdge{#1-.5}}
-
-\newcommand{\DegreeMarker}[3]{%
-  \ifstrequal{#3}{1}{%
-    \fill[ChartHeading,rounded corners=1bp]
-      ({#1-7},{#2-6.7}) rectangle ({#1+7},{#2+6.7});%
-    \ChartText[center]{#1}{#2}{10}{white}{\bfseries 1}%
-  }{%
-    \draw[ChartMuted,line width=.55bp,fill=white]
-      ({#1},{#2}) circle[radius=6.7bp];%
-    \ChartText[center]{#1}{#2}{9.5}{ChartInk}{#3}%
-  }%
-}
-\newcommand{\FretDegree}[3]{%
-  \DegreeMarker{\FretCenter{#2}}{\StringCenter{#1}}{#3}%
-}
-
-\newcommand{\StringLabel}[2]{%
-  \ChartText[base east]{\GridLeft-7}{\StringCenter{#1}-3}{9}{ChartMuted}%
-    {\bfseries#1\enspace\mdseries#2}%
-}
-
-% Grid arguments are left edge, top edge, width, first/last fret, and scale key.
-\newcommand{\DrawGrid}[6]{%
-  \begin{scope}
-    \def\GridLeft{#1}\def\GridTop{#2}\def\FirstFret{#4}%
-    \pgfmathsetmacro{\GridRight}{#1+#3}%
-    \pgfmathsetmacro{\FretWidth}{(#3)/(#5-#4+1)}%
-    \fill[ChartHeader] (\GridLeft,\GridTop) rectangle (\GridRight,{\StringEdge{0}});
-    \foreach \row in {2,4,6} {%
-      \fill[ChartStripe] (\GridLeft,{\StringEdge{\row-1}})
-        rectangle (\GridRight,{\StringEdge{\row}});
-    }%
-    \foreach \fret in {#4,...,#5} {%
-      \draw[ChartRule,line width=.50bp] ({\FretEdge{\fret}},\GridTop)
-        -- ({\FretEdge{\fret}},{\StringEdge{6}});
-      \ChartText[base]{\FretCenter{\fret}}{\GridTop-12.5}{10}{ChartHeading}{\bfseries\fret}%
-    }%
-    \foreach \row in {0,...,5} {%
-      \draw[ChartRule,line width=.50bp] (\GridLeft,{\StringEdge{\row}})
-        -- (\GridRight,{\StringEdge{\row}});
-    }%
-    \draw[ChartRule,line width=.60bp] (\GridLeft,\GridTop)
-      rectangle (\GridRight,{\StringEdge{6}});
-    \directlua{PrintGridNotes("#6", #4, #5)}%
-  \end{scope}%
-}
-
-\newcommand{\DrawHeading}[2]{%
-  \ChartText{\ChartLeft}{542}{28}{ChartInk}{\bfseries #1}%
-  \ChartText[base east]{\ChartRight}{542}{12}{ChartHeading}{\bfseries #2}%
-  \draw[ChartRule,line width=.65bp] (\ChartLeft,529) -- (\ChartRight,529);
-}
-
-\newcommand{\CoverageBand}[4]{%
-  \pgfmathsetmacro{\BandLeft}{\OverviewGridLeft+(\ChartRight-\OverviewGridLeft)/24*(#2-1)+.8}%
-  \pgfmathsetmacro{\BandRight}{\OverviewGridLeft+(\ChartRight-\OverviewGridLeft)/24*#3-.8}%
-  \pgfmathsetmacro{\BandBottom}{422+17*#4}%
-  \draw[draw=ChartHeading,fill=ChartHeader,line width=.55bp,rounded corners=1.5bp]
-    (\BandLeft,\BandBottom) rectangle (\BandRight,{\BandBottom+13.5});
-  \ChartText[center]{(\BandLeft+\BandRight)/2}{\BandBottom+6.75}{9.5}{ChartHeading}{\bfseries #1}%
-}
 
 \newcommand{\OverviewPage}{%
   \DrawHeading{\ChartTitle}{\Localize{Обзор · Лады 1–24}{Overview · Frets 1–24}}%
@@ -259,39 +94,6 @@ end
   \DrawOverviewFooter
 }
 
-\newcommand{\ScaleKeyCell}[3]{%
-  \pgfmathsetmacro{\KeyX}{\KeyStart+35*(#1-1)}%
-  \ChartText[base]{\KeyX}{\KeyTop}{\KeySize}{ChartHeading}{\bfseries #2}%
-  \ChartText[base]{\KeyX}{\KeyTop-14}{\KeySize}{ChartInk}{#3}%
-}
-\newcommand{\ScaleKey}[4]{%
-  \begin{scope}
-    \def\KeyStart{#1}\def\KeyTop{#2}\def\KeySize{#3}%
-    \ChartText[base east]{#1-23}{#2}{#3}{ChartMuted}{\Localize{Ступень}{Degree}}%
-    \ChartText[base east]{#1-23}{#2-14}{#3}{ChartMuted}{\Localize{Нота}{Note}}%
-    \directlua{PrintScaleKey("#4")}%
-  \end{scope}%
-}
-
-\newcommand{\DrawCard}[6]{%
-  \begin{scope}[shift={(#1,#2)}]
-    \fill[ChartHeader] (0,-24) rectangle (248,0);
-    \draw[ChartRule,line width=.60bp] (0,0) rectangle (248,-161);
-    \ChartText{12}{-16}{12}{ChartHeading}{\bfseries #3}%
-    \ChartText[base east]{236}{-16}{10.5}{ChartInk}%
-      {\Localize{Лады}{Frets} #4–#5}%
-    \DrawGrid{51}{-32}{185}{#4}{#5}{#6}%
-  \end{scope}%
-}
-\newcommand{\PositionCard}[5]{%
-  \pgfmathsetmacro{\CardX}{\ChartLeft+263*mod(#1-1,3)}%
-  \pgfmathsetmacro{\CardY}{452-173*floor((#1-1)/3)}%
-  \DrawCard{\CardX}{\CardY}{\Localize{Форма}{Form} #2}{#3}{#4}{#5}%
-}
-\newcommand{\ExampleCard}[4]{%
-  \DrawCard{560}{279}{\ExampleTitle\space· #1}{#2}{#3}{#4}%
-}
-
 % The two scales share the CAGED windows, layout and fret calculation.
 \newcommand{\PositionPage}[6]{%
   \DrawHeading{#1}{\Localize{Пять позиций CAGED}{Five CAGED positions}}%
@@ -313,15 +115,6 @@ end
   \DrawFooter
 }
 
-\newcommand{\ReadmeReference}[1]{%
-  https://github.com/zhunkoff/music-reference/blob/main/\Localize{README.ru.md}{README.md}\#ref-#1%
-}
-\newcommand{\DrawFooter}{%
-  \draw[ChartRule,line width=.65bp] (\ChartLeft,50) -- (\ChartRight,50);
-  \ChartText[base east]{\ChartRight}{19}{9}{ChartMuted}{%
-    © 2026 \href{https://github.com/zhunkoff/music-reference}{Sergey Zhunkov} ·
-    \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0}}%
-}
 \newcommand{\DrawOverviewFooter}{%
   \DrawFooter
   \ChartText{\ChartLeft}{34}{9.5}{ChartInk}{\bfseries\Localize{Источники}{Sources}}%
@@ -336,14 +129,6 @@ end
     \href{\ReadmeReference{fretboard}}{\Localize{Карта нот на грифе}{Fretboard map}}\qquad
     \href{\ReadmeReference{scale-construction}}{\Localize
       {Построение гамм и пентатоник}{Scale and pentatonic construction}}}%
-}
-
-\newcommand{\PrintChartPage}[2]{%
-  \pdfbookmark[0]{#1}{scale-maps-\thepage}%
-  \AddToHookNext{shipout/background}{%
-    \put(0,-\paperheight){\begin{tikzpicture}[overlay,x=1bp,y=1bp]#2\end{tikzpicture}}%
-  }%
-  \null\newpage
 }
 
 \begin{document}

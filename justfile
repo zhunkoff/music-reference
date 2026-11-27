@@ -36,6 +36,10 @@ build-scale-construction $language="":
 build-guitar-scales $language="":
     latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(guitar-scale-maps), language => $ENV{language});'
 
+# Build the major and minor pentatonic guitar maps.
+build-guitar-pentatonics $language="":
+    latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(guitar-pentatonic-maps), language => $ENV{language});'
+
 # Build the guitar triad inversion charts.
 build-triads $language="":
     latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(triad-inversions), language => $ENV{language});'

@@ -278,6 +278,7 @@ just build-all
 | `just build-chords-in-keys en` | Build only the English reference for chords in major and minor keys |
 | `just build-scale-construction en` | Build only the English scale and pentatonic construction reference |
 | `just build-guitar-scales en` | Build only the English guitar scale maps |
+| `just build-guitar-pentatonics en` | Build only the English guitar pentatonic maps |
 | `just build-triads en` | Build only the English guitar triad inversion charts |
 | `just clean` | Remove auxiliary files for registered documents |
 | `just --list` | List available commands |
@@ -564,6 +565,22 @@ The files are `major-natural-minor.en.pdf` and `major-natural-minor.ru.pdf`.
 `\ChartLanguage` to `en` (default) or `ru`. For print verification, use
 landscape A4 at 100% / actual size. In color and grayscale, check fret
 numbers, degree symbols, square tonic markers, and overlaps in the overview.
+
+### Guitar pentatonic maps
+
+The [shared TeX source](guitar/scales/major-minor-pentatonic.tex) produces three
+landscape A4 sheets per language. It uses the same CAGED windows as the
+seven-note scale maps and follows them in the book.
+
+```sh
+just build-guitar-pentatonics en
+just build-guitar-pentatonics ru
+```
+
+The files are `major-minor-pentatonic.en.pdf` and `major-minor-pentatonic.ru.pdf`.
+`just build-all` builds both. At 100% / actual size, check the degree
+symbols, square tonic markers, shared notes, and transposition examples in
+color and grayscale, and verify the overview links.
 
 ### Guitar triad inversions
 

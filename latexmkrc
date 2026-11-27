@@ -23,6 +23,8 @@ $fretboard_source = 'guitar/fretboard/6-string-fretboard.tex';
         'Scale and pentatonic construction', 'Построение гамм и пентатоник'],
     ['guitar/scales/major-natural-minor.tex', 'guitar-scale-maps',
         'Guitar scale maps', 'Карты гамм на грифе гитары'],
+    ['guitar/scales/major-minor-pentatonic.tex', 'guitar-pentatonic-maps',
+        'Guitar pentatonic maps', 'Карты пентатоник на грифе гитары'],
     ['guitar/triads/triad-inversions.tex', 'triad-inversions',
         'Guitar triad inversions', 'Обращения трезвучий на гитаре'],
 );
