@@ -45,5 +45,7 @@ documents: {}
   #   language: en
   # theory/harmony/chord-construction.tex:
   #   language: en
+  # theory/harmony/chords-in-keys.tex:
+  #   language: en
   # guitar/triads/triad-inversions.tex:
   #   language: en

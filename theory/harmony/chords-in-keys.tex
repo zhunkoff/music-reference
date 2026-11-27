@@ -1,0 +1,283 @@
+% Copyright (c) 2026 Sergey Zhunkov.
+% SPDX-License-Identifier: CC-BY-4.0
+% https://creativecommons.org/licenses/by/4.0/
+%
+% Set \ChartLanguage to en or ru before loading this source. English is the default.
+\documentclass[a4paper,landscape]{article}
+\usepackage[margin=0pt]{geometry}
+\usepackage{fontspec}
+\usepackage{babel}
+\usepackage{etoolbox}
+\usepackage{tikz}
+\usetikzlibrary{babel}
+\usepackage{luacode}
+\usepackage{hyperref}
+
+\providecommand{\ChartLanguage}{en}
+\newif\ifChartRussian
+\ifdefstring{\ChartLanguage}{ru}{%
+  \ChartRussiantrue
+  \babelprovide[import,main]{russian}
+  \babelprovide[import]{english}
+}{%
+  \ifdefstring{\ChartLanguage}{en}{%
+    \babelprovide[import,main]{english}
+    \babelprovide[import]{russian}
+  }{%
+    \PackageError{chords-in-keys}{Unsupported ChartLanguage '\ChartLanguage'}
+      {Set ChartLanguage to en or ru.}%
+  }%
+}
+
+\setmainfont{DejaVuSansCondensed.ttf}[
+  BoldFont=DejaVuSansCondensed-Bold.ttf,
+  Ligatures=NoCommon,
+  RawFeature={-kern,-clig}
+]
+\pagestyle{empty}
+
+\definecolor{ChartInk}{RGB}{23,43,50}
+\definecolor{ChartMuted}{RGB}{70,91,99}
+\providecommand{\ChartAccentHex}{195755}
+\definecolor{ChartAccent}{HTML}{\ChartAccentHex}
+\definecolor{ChartRule}{RGB}{197,208,209}
+\definecolor{ChartStripe}{RGB}{244,247,247}
+\colorlet{ChartHeader}{ChartAccent!13!white}
+\colorlet{ChartHeading}{ChartAccent!33!ChartInk}
+
+\newcommand{\Localize}[2]{\ifChartRussian#1\else#2\fi}
+\newcommand{\ChartTitle}{\Localize{Аккорды в мажоре и миноре}{Chords in major and minor keys}}
+\hypersetup{
+  pdfauthor={Sergey Zhunkov},
+  pdftitle={\ChartTitle},
+  colorlinks=true,
+  urlcolor=ChartHeading,
+  linkcolor=ChartHeading
+}
+\ifChartRussian
+  \hypersetup{pdflang={ru-RU}}
+\else
+  \hypersetup{pdflang={en}}
+\fi
+
+\begin{luacode*}
+local letters = {"C", "D", "E", "F", "G", "A", "B"}
+local natural_pitches = {0, 2, 4, 5, 7, 9, 11}
+local sharp_order = {"F", "C", "G", "D", "A", "E", "B"}
+local flat_order = {"B", "E", "A", "D", "G", "C", "F"}
+local key_order = {0, 1, 2, 3, 4, 5, 6, 7, -1, -2, -3, -4, -5, -6, -7}
+local accidentals = {[-1] = "♭", [0] = "", [1] = "♯"}
+local numerals = {"I", "II", "III", "IV", "V", "VI", "VII"}
+local suffixes = {[3] = {[6] = "°", [7] = "m"}, [4] = {[7] = ""}}
+
+local function scale_for_key(fifths, is_minor)
+  local order = fifths < 0 and flat_order or sharp_order
+  local alteration = fifths < 0 and -1 or 1
+  local signature, alterations = {}, {}
+  for i = 1, math.abs(fifths) do
+    local letter = order[i]
+    signature[i] = letter .. accidentals[alteration]
+    alterations[letter] = alteration
+  end
+
+  -- C is the zero-signature major tonic. A fifth advances four letter steps.
+  -- The relative natural minor starts on degree 6 of the major scale.
+  local tonic = 4 * fifths + (is_minor and 5 or 0)
+  local notes, pitches = {}, {}
+  for degree = 1, #letters do
+    local index = (tonic + degree - 1) % #letters + 1
+    local letter = letters[index]
+    local offset = alterations[letter] or 0
+    notes[degree] = letter .. accidentals[offset]
+    pitches[degree] = natural_pitches[index] + offset
+  end
+  return notes, pitches, signature
+end
+
+local function triad_suffix(pitches, degree)
+  local root = pitches[degree]
+  local third = (pitches[(degree + 1) % #pitches + 1] - root) % 12
+  local fifth = (pitches[(degree + 3) % #pitches + 1] - root) % 12
+  return assert(suffixes[third] and suffixes[third][fifth], "Unexpected diatonic triad")
+end
+
+local function emit(command, ...)
+  tex.sprint("\\" .. command .. "{" .. table.concat({...}, "}{") .. "}")
+end
+
+function PrintKeyTable(is_minor)
+  -- Each mode has the same quality pattern in every key. Use its zero-signature row.
+  local _, reference_pitches = scale_for_key(0, is_minor)
+  for degree, numeral in ipairs(numerals) do
+    local suffix = triad_suffix(reference_pitches, degree)
+    if suffix ~= "" then
+      numeral = numeral:lower()
+    end
+    emit("DegreeHeader", degree, numeral .. (suffix == "°" and suffix or ""))
+  end
+
+  for row, fifths in ipairs(key_order) do
+    local notes, pitches, signature = scale_for_key(fifths, is_minor)
+    local key = notes[1] .. (is_minor and "m" or "")
+    local signs = #signature > 0 and table.concat(signature, "\\enspace ") or "\\NoKeySigns"
+    emit("KeyRow", row, key, signs, table.concat(notes, "\\enspace "))
+    for degree, note in ipairs(notes) do
+      emit("DegreeCell", row, degree, note .. triad_suffix(pitches, degree))
+    end
+  end
+end
+\end{luacode*}
+
+% Coordinates and font sizes are in PDF points, measured from the bottom left.
+\newcommand{\ChartText}[6][base west]{%
+  \node[anchor=#1,inner sep=0pt,outer sep=0pt,text=#5,
+    font=\fontsize{#4bp}{#4bp}\selectfont] at ({#2},{#3}) {#6};%
+}
+\newcommand{\ChartLeft}{34}
+\newcommand{\ChartRight}{808}
+\newcommand{\KeyX}{45}
+\newcommand{\SignatureX}{139}
+\newcommand{\ScaleX}{292}
+\newcommand{\DegreeX}[1]{481+49*(#1-1)}
+\newcommand{\RowTop}[1]{466-17*(#1-1)}
+\newcommand{\RowBase}[1]{\RowTop{#1}-12}
+\newcommand{\NoKeySigns}{\Localize{Без знаков}{None}}
+
+\newcommand{\DegreeHeader}[2]{%
+  \ChartText[base]{\DegreeX{#1}}{474}{12}{ChartInk}{\bfseries #2}%
+}
+\newcommand{\KeyRow}[4]{%
+  \ifodd#1\relax
+    \fill[ChartStripe] (\ChartLeft,{\RowTop{#1+1}}) rectangle (\ChartRight,{\RowTop{#1}});
+  \fi
+  \ChartText{\KeyX}{\RowBase{#1}}{12}{ChartInk}{\bfseries #2}%
+  \ChartText{\SignatureX}{\RowBase{#1}}{11.5}{ChartMuted}{#3}%
+  \ChartText{\ScaleX}{\RowBase{#1}}{11.5}{ChartInk}{#4}%
+}
+\newcommand{\DegreeCell}[3]{%
+  \ChartText[base]{\DegreeX{#2}}{\RowBase{#1}}{12}{ChartInk}{#3}%
+}
+\newcommand{\DrawTable}[1]{%
+  \fill[ChartHeader] (\ChartLeft,466) rectangle (\ChartRight,492);
+  \ChartText{\KeyX}{474}{11}{ChartInk}{\bfseries\Localize{Тональность}{Key}}%
+  \ChartText{\SignatureX}{474}{11}{ChartInk}{\bfseries\Localize{Ключевые знаки}{Key signature}}%
+  \ChartText{\ScaleX}{474}{11}{ChartInk}{\bfseries\Localize{Ноты гаммы}{Scale notes}}%
+  \directlua{PrintKeyTable(#1)}%
+  \foreach \y in {\RowTop{2},\RowTop{9},\RowTop{16}} {%
+    \draw[ChartRule,line width=.65bp] (\ChartLeft,{\y}) -- (\ChartRight,{\y});%
+  }%
+  \foreach \x in {128,281,452} {%
+    \draw[ChartRule,line width=.65bp] (\x,{\RowTop{16}}) -- (\x,492);%
+  }%
+}
+
+\newcommand{\GuideSection}[2]{%
+  {\color{ChartHeading}\fontsize{12bp}{15bp}\selectfont\bfseries #1\par}%
+  \vspace{2bp}%
+  #2\par
+  \vspace{6bp}%
+}
+\newcommand{\ChartLegend}{%
+  \GuideSection{\Localize{Ступени и обозначения}{Degrees and chord symbols}}{%
+    \Localize
+      {Римская цифра показывает ступень основного тона. Прописные обозначения
+       соответствуют мажорным трезвучиям, строчные - минорным, а строчные
+       со знаком ° - уменьшенным. В символах C, Cm и C° буква C указывает
+       основной тон.}
+      {Roman numerals show the root's scale degree. Uppercase marks a major
+       triad, lowercase a minor triad, and lowercase with ° a diminished triad.
+       In C, Cm, and C°, the letter C names the root.}}%
+  \GuideSection{\Localize{Ноты и ключевые знаки}{Notes and key signatures}}{%
+    \Localize
+      {Ноты идут от тоники. Названия международные, от C до B (B = си).
+       У энгармонических тональностей, например F♯ и G♭ в мажоре, свои
+       ключевые знаки и своё написание нот.}
+      {Read from the tonic using international note names C to B.
+       Enharmonic keys such as F♯ and G♭ major keep their own spellings
+       and key signatures.}}%
+}
+\newcommand{\MajorGuide}{%
+  \GuideSection{\Localize{Как читать строку}{Read a row}}{%
+    \Localize
+      {В строке ре мажора (D) столбец ii даёт Em. От второй ступени E
+       берём ноты через одну (E, G, B) и получаем две терции подряд.}
+      {In the D major row, column ii gives Em. Start on the second note, E,
+       and take every other scale note (E, G, B) to stack two thirds.}}%
+  \GuideSection{\Localize{Как транспонировать}{Transpose a progression}}{%
+    \Localize
+      {В до мажоре (C) аккорды \mbox{C-G-Am-F} стоят в столбцах \mbox{I-V-vi-IV}.
+       Прочитайте те же столбцы в том же порядке в строке ми-бемоль мажора
+       (E♭). Получится \mbox{E♭-B♭-Cm-A♭}.}
+      {In C major, \mbox{C-G-Am-F} uses columns \mbox{I-V-vi-IV}.
+       Read those columns in the same order in the E♭ major row to get
+       \mbox{E♭-B♭-Cm-A♭}.}}%
+}
+\newcommand{\MinorGuide}{%
+  \GuideSection{\Localize{Гармонический минор и доминанта}{Harmonic minor and the dominant}}{%
+    \Localize
+      {В натуральном ля миноре (Am) на пятой ступени стоит Em (E, G, B).
+       В гармоническом миноре повышают VII ступень с G до G♯. Этот знак пишут
+       у ноты, а ключевые знаки сохраняют. На пятой ступени теперь E (V) из нот E, G♯ и B.
+       Добавление D даёт E7 (V7), доминантсептаккорд. В последовательности
+       \mbox{Dm-E7-Am} вводный тон G♯ ведёт на полутон вверх к A. Повышение
+       затрагивает и другие трезвучия с этой нотой, например G♯° (G♯, B, D)
+       на повышенной VII ступени.}
+      {In A natural minor, degree 5 gives Em (E, G, B). Harmonic minor raises
+       degree 7 from G to G♯. Write the accidental at the note and keep the
+       key signature. Degree 5 now gives E (V), built from E, G♯, and B. Add D
+       for E7 (V7), the dominant seventh. In \mbox{Dm-E7-Am}, G♯ resolves up a
+       semitone to A as the leading tone. The raised note also changes other triads that use it, such as
+       G♯° (G♯, B, D) on raised degree 7.}}%
+}
+
+\newcommand{\DrawFooter}{%
+  \draw[ChartRule,line width=.65bp] (\ChartLeft,49) -- (\ChartRight,49);
+  \ChartText{\ChartLeft}{34}{9.5}{ChartInk}{\bfseries\Localize{Источники}{Sources}}%
+  \ChartText{109}{34}{9.5}{ChartMuted}{%
+    musictheory.net · \href{https://www.musictheory.net/lessons/43}
+      {\Localize{диатонические трезвучия}{diatonic triads}}%
+    \qquad University of Puget Sound ·
+    \href{https://musictheory.pugetsound.edu/mt21c/MajorKeySignatures.html}
+      {\Localize{ключевые знаки}{key signatures}} ·
+    \href{https://musictheory.pugetsound.edu/mt21c/MinorScales.html}
+      {\Localize{минорные гаммы}{minor scales}} ·
+    \href{https://musictheory.pugetsound.edu/mt21c/RomanNumeralsOfDiatonicSeventhChords.html}
+      {\Localize{V7 в миноре}{V7 in minor}}}%
+  \ChartText{\ChartLeft}{20}{9.5}{ChartInk}{\bfseries\Localize{См. также}{See also}}%
+  \ChartText{109}{20}{9.5}{ChartMuted}{%
+    \href{https://github.com/zhunkoff/music-reference/blob/main/\Localize{README.ru.md}{README.md}\#ref-circle-of-fifths}
+      {\Localize{Квинтовый круг}{Circle of fifths}}%
+    \qquad
+    \href{https://github.com/zhunkoff/music-reference/blob/main/\Localize{README.ru.md}{README.md}\#ref-chord-construction}
+      {\Localize{Построение аккордов}{Chord construction}}}%
+  \ChartText[base east]{\ChartRight}{20}{9}{ChartMuted}{%
+    © 2026 \href{https://github.com/zhunkoff/music-reference}{Sergey Zhunkov}
+    \enspace·\enspace \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0}}%
+}
+
+\newcommand{\ChartPage}[3]{%
+  \AddToHookNext{shipout/background}{%
+    \put(0,-\paperheight){%
+      \begin{tikzpicture}[overlay,x=1bp,y=1bp]
+        \ChartText{\ChartLeft}{548}{28}{ChartInk}{\bfseries\ChartTitle}%
+        \ChartText{\ChartLeft}{523}{12}{ChartMuted}{#2}%
+        \draw[ChartRule,line width=.65bp] (\ChartLeft,510) -- (\ChartRight,510);
+        \DrawTable{#1}%
+        \node[anchor=north west,inner sep=0pt,outer sep=0pt,text=ChartInk,align=left,
+          text width=370bp,font=\fontsize{11bp}{14bp}\selectfont]
+          at (\ChartLeft,189) {\ChartLegend};
+        \node[anchor=north west,inner sep=0pt,outer sep=0pt,text=ChartInk,align=left,
+          text width=374bp,font=\fontsize{11bp}{14bp}\selectfont]
+          at (434,189) {#3};
+        \DrawFooter
+      \end{tikzpicture}%
+    }%
+  }%
+  \null
+}
+
+\begin{document}
+\ChartPage{false}{\Localize{Диатонические трезвучия мажора}{Diatonic triads in major}}{\MajorGuide}
+\newpage
+\ChartPage{true}{\Localize{Диатонические трезвучия натурального минора}{Diatonic triads in natural minor}}{\MinorGuide}
+\end{document}
