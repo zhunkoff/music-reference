@@ -7,8 +7,8 @@
 
 ## Скачать сборник
 
-- [На английском (PDF)](https://github.com/zhunkoff/music-reference/releases/download/v1.1.0/music-reference.en.pdf)
-- [На русском (PDF)](https://github.com/zhunkoff/music-reference/releases/download/v1.1.0/music-reference.ru.pdf)
+- [На английском (PDF)](https://github.com/zhunkoff/music-reference/releases/download/v1.2.0/music-reference.en.pdf)
+- [На русском (PDF)](https://github.com/zhunkoff/music-reference/releases/download/v1.2.0/music-reference.ru.pdf)
 
 Сборник, собранный из текущих исходников, включает все материалы ниже.
 В таблице аккордов показаны номера пальцев, а на карте грифа — названия

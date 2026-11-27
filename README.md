@@ -7,8 +7,8 @@ projects.
 
 ## Download the book
 
-- [English PDF](https://github.com/zhunkoff/music-reference/releases/download/v1.1.0/music-reference.en.pdf)
-- [Russian PDF](https://github.com/zhunkoff/music-reference/releases/download/v1.1.0/music-reference.ru.pdf)
+- [English PDF](https://github.com/zhunkoff/music-reference/releases/download/v1.2.0/music-reference.en.pdf)
+- [Russian PDF](https://github.com/zhunkoff/music-reference/releases/download/v1.2.0/music-reference.ru.pdf)
 
 A book built from this checkout includes all the materials below, with finger
 numbers on the chord chart and note names on the fretboard map. Other variants
