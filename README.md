@@ -110,6 +110,17 @@ example.
 
 - [Shared TeX source](guitar/scales/major-natural-minor.tex)
 
+<a name="ref-guitar-pentatonic-maps"></a>
+
+### Guitar pentatonic maps
+
+Three landscape A4 sheets for the C major and A minor pentatonic scales. The
+overview maps both scales across frets 1–24. Each scale sheet shows five
+closed CAGED positions, shared notes for moving between them, the degrees
+omitted from the seven-note scale, and a worked transposition.
+
+- [Shared TeX source](guitar/scales/major-minor-pentatonic.tex)
+
 <a name="ref-note-frequencies"></a>
 
 ### Note frequencies
