@@ -332,9 +332,10 @@ just build-all
 To customize the build, copy [build.example.yaml](build.example.yaml) to
 `build.yaml` in the repository root and edit the copy. Git ignores the local file.
 The example lists every registered source and the options it supports.
-Both `defaults` and `documents` are optional mappings. In `documents`, use the
+`defaults`, `documents`, and `book` are optional mappings. In `documents`, use the
 exact paths from the registry in [latexmkrc](latexmkrc), relative to the
-repository root and with forward slashes.
+repository root and with forward slashes. See [Combined PDF](#combined-pdf)
+for the `book` setting.
 
 | Key | Values | Sources |
 | --- | --- | --- |
@@ -375,11 +376,11 @@ selects English and note names for that map.
 `just build-all` always builds both languages and both fretboard label modes.
 It uses the configured finger-number setting unless an argument overrides it.
 
-`defaults.accent_color` sets the accent for standalone PDFs and all sections
-of the combined PDF in both languages and all chart variants. Keep the quotes
-so YAML reads the leading `#` as part of the string. Rerun the build after changing
-the color to update the PDFs at the same paths. Direct LuaLaTeX builds use the TeX
-default of `#195755`.
+`defaults.accent_color` sets the accent for standalone PDFs and for the contents
+page and sections of the combined PDF. It applies to both languages and all chart
+variants. Keep the quotes so YAML reads the leading `#` as part of the string.
+Rerun the build after changing the color to update the PDFs at the same paths.
+Direct LuaLaTeX builds use the TeX default of `#195755`.
 
 ### Combined PDF
 
@@ -394,10 +395,27 @@ The book uses its explicit language argument, then `defaults.language`, then
 Per-document language settings apply to standalone PDFs. The book still uses
 the effective finger-number and fretboard options for its sections.
 The output is `build/music-reference.en.pdf` or `build/music-reference.ru.pdf`.
-Changing a section variant or the accent color rebuilds the book at the same path.
+Changing a section variant, the accent color, or the contents setting rebuilds
+the book at the same path without a clean build.
+
+By default, both languages start with a landscape A4 contents page. Each entry
+shows the section's starting page in the combined PDF and links to that page.
+The `book.table_of_contents` setting accepts the YAML booleans `true` and `false`.
+It defaults to `true` when the key or `build.yaml` is absent. To omit the page,
+add this to `build.yaml`.
+
+```yaml
+book:
+  table_of_contents: false
+```
+
+With `false`, the first reference section starts on page 1. The setting applies
+to `just build-book` in both languages. For a print check, select landscape A4
+and 100% / actual size.
 
 The build compiles the selected individual variants and includes each once in
-the order defined in [latexmkrc](latexmkrc), with a bookmark for each section.
+the order defined in [latexmkrc](latexmkrc). The registry supplies the titles
+and order for the contents page and bookmarks.
 LuaLaTeX runs [the book wrapper](book/music-reference.tex).
 `pdfpages` inserts the pages at their original sizes, and `newpax` restores
 clickable links. Links between book sections open the corresponding pages.

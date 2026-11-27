@@ -2,9 +2,13 @@
 % SPDX-License-Identifier: CC-BY-4.0
 \DocumentMetadata{}
 \documentclass{article}
-\usepackage{etoolbox,xcolor,pdfpages,hyperref,bookmark,newpax}
+\usepackage[a4paper,landscape,margin=12mm]{geometry}
+\usepackage{etoolbox,fontspec,xcolor,pdfpages,hyperref,bookmark,newpax}
 
 \newcommand{\BookReadme}{README.md}
+\newcommand{\BookContentsTitle}{Contents}
+\newcommand{\BookContentsSectionHeading}{Section}
+\newcommand{\BookContentsPageHeading}{Page}
 \hypersetup{
   pdfauthor={Sergey Zhunkov},
   pdftitle={Music reference},
@@ -12,15 +16,52 @@
 }
 \ifdefstring{\ChartLanguage}{ru}{%
   \renewcommand{\BookReadme}{README.ru.md}%
+  \renewcommand{\BookContentsTitle}{Оглавление}%
+  \renewcommand{\BookContentsSectionHeading}{Раздел}%
+  \renewcommand{\BookContentsPageHeading}{Страница}%
   \hypersetup{pdftitle={Справочник по музыке},pdflang={ru-RU}}%
 }{}
 \newpaxsetup{usefileattributes=true}
+
+\providecommand{\ChartAccentHex}{195755}
+\definecolor{BookContentsAccent}{HTML}{\ChartAccentHex}
+\definecolor{BookContentsInk}{RGB}{23,43,50}
+\definecolor{BookContentsRule}{RGB}{197,208,209}
+\newfontfamily\BookContentsFont{DejaVuSansCondensed.ttf}[
+  BoldFont=DejaVuSansCondensed-Bold.ttf
+]
+
+\newcommand{\BookContentsLine}[2]{%
+  \makebox[\linewidth]{\rule[-9bp]{0pt}{32bp}#1\hfill#2}%
+}
+\newcommand{\BookContentsEntry}[2]{%
+  \noindent\hyperlink{book-#1.1}{%
+    \BookContentsLine{#2}{\pageref*{book-page-#1}}%
+  }\par\nobreak
+  {\color{BookContentsRule}\hrule height .4bp}%
+}
+\newcommand{\BookContents}{%
+  \begingroup
+  \pagestyle{empty}%
+  \BookContentsFont\fontsize{14bp}{20bp}\selectfont
+  \color{BookContentsInk}%
+  \hypersetup{colorlinks=true,linkcolor=BookContentsAccent,pdflinkmargin=0pt}%
+  \noindent{\color{BookContentsAccent}\bfseries\fontsize{27bp}{32bp}\selectfont
+    \BookContentsTitle\par}%
+  \vspace{14bp}%
+  \noindent\textbf{\BookContentsLine{\BookContentsSectionHeading}{\BookContentsPageHeading}}\par
+  {\color{BookContentsAccent}\hrule height .8bp}%
+  \BookContentsEntries
+  \clearpage
+  \endgroup
+}
 
 \makeatletter
 \ExplSyntaxOn
 \prop_new:N \g_book_reference_destinations_prop
 \tl_new:N \l_book_reference_destination_tl
 \tl_new:N \g_book_pages_tl
+\tl_new:N \g_book_contents_entries_tl
 
 % Register all targets before importing any source, including forward links.
 \NewDocumentCommand \BookDocument { m m m }
@@ -28,6 +69,7 @@
     \prop_gput:Nee \g_book_reference_destinations_prop
       { (https://github.com/zhunkoff/music-reference/blob/main/\BookReadme\c_hash_str ref-#2) }
       { book-#2.1 }
+    \tl_gput_right:Nn \g_book_contents_entries_tl { \BookContentsEntry{#2}{#3} }
     \tl_gput_right:Nn \g_book_pages_tl { \BookIncludeDocument{#1}{#2}{#3} }
   }
 
@@ -45,6 +87,7 @@
       { \book_newpax_uri: }
   }
 
+\NewDocumentCommand \BookContentsEntries {} { \tl_use:N \g_book_contents_entries_tl }
 \NewDocumentCommand \BookPages {} { \tl_use:N \g_book_pages_tl }
 \ExplSyntaxOff
 \makeatother
@@ -53,10 +96,13 @@
   \directlua{require("newpax").writenewpax("\luaescapestring{../#1}")}%
   \bookmark[dest=book-#2.1,level=0]{#3}%
   \newpaxsetup{destsuffix=#2}%
-  \includepdf[pages=-,fitpaper,link,linkname=book-#2]{../#1.pdf}%
+  % Record the page number on the first imported page for the next LaTeX pass.
+  \includepdf[pages=-,fitpaper,link,linkname=book-#2,
+    pagecommand*={\label{book-page-#2}}]{../#1.pdf}%
 }
 
 \begin{document}
 \BookDocuments
+\ifdefstring{\BookShowContents}{true}{\BookContents}{}%
 \BookPages
 \end{document}
