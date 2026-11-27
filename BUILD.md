@@ -23,6 +23,7 @@ Use `latexmk` 4.84 or newer for the project's cleanup hook.
 | English and Russian hyphenation | `hyphen-english`, `hyphen-russian` |
 | Font selection | `fontspec` |
 | DejaVu Sans Condensed fonts | `dejavu` |
+| Music notation glyphs | `lilyglyphs` |
 | Page layout and document helpers | `geometry`, `etoolbox`, `hyperref` |
 | Combined PDF | `pdfpages`, `newpax`, `bookmark`, `xcolor` |
 
@@ -98,11 +99,11 @@ that path is a directory, put the entry in a file such as
 `/etc/portage/package.use/texlive`.
 
 ```text
-app-text/texlive extra graphics luatex l10n_en l10n_ru
+app-text/texlive extra graphics luatex music l10n_en l10n_ru
 ```
 
 These flags select additional fonts and LaTeX packages, graphics packages,
-LuaTeX, and English/Russian language collections.
+LuaTeX, music typesetting, and English/Russian language collections.
 [Gentoo TeX Live package](https://packages.gentoo.org/packages/app-text/texlive).
 
 Run the installation command as root.
@@ -232,6 +233,8 @@ kpsewhich babel-russian.tex
 kpsewhich tikz.sty
 kpsewhich DejaVuSansCondensed.ttf
 kpsewhich DejaVuSansCondensed-Bold.ttf
+kpsewhich lilyglyphs.sty
+kpsewhich emmentaler-16.otf
 kpsewhich geometry.sty
 kpsewhich etoolbox.sty
 kpsewhich hyperref.sty
@@ -279,6 +282,7 @@ just build-all
 | `just build-scale-construction en` | Build only the English scale and pentatonic construction reference |
 | `just build-guitar-scales en` | Build only the English guitar scale maps |
 | `just build-guitar-pentatonics en` | Build only the English guitar pentatonic maps |
+| `just build-guitar-improvisation en` | Build only the English guitar improvisation guide |
 | `just build-triads en` | Build only the English guitar triad inversion charts |
 | `just clean` | Remove auxiliary files for registered documents |
 | `just --list` | List available commands |
@@ -608,6 +612,22 @@ of the guitar chord chart's finger-number setting.
 For print verification, select A4 landscape and 100% / actual size. Check both
 pages in each language in color and grayscale, especially the degree labels,
 fret numbers, string numbers, and muted-string marks.
+
+### Scales and chord tones
+
+The [shared TeX source](guitar/improvisation/scales-and-chord-tones.tex) produces
+two landscape A4 sheets per language. The book places them after the triad
+inversion charts, following the scale and pentatonic maps.
+
+```sh
+just build-guitar-improvisation en
+just build-guitar-improvisation ru
+```
+
+The files are `scales-and-chord-tones.en.pdf` and `scales-and-chord-tones.ru.pdf`.
+`just build-all` builds both. For print verification, use landscape A4 at
+100% / actual size. Check the chord badges, target and passing labels, staff
+and tablature alignment, and links in color and grayscale.
 
 ### Cleaning build files
 

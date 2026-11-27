@@ -44,6 +44,10 @@ build-guitar-pentatonics $language="":
 build-triads $language="":
     latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(triad-inversions), language => $ENV{language});'
 
+# Build the guitar improvisation guide.
+build-guitar-improvisation $language="":
+    latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(scales-and-chord-tones), language => $ENV{language});'
+
 # Build every registered document in both languages and all four fretboard PDFs.
 build-all $fingers="":
     latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(all), show_finger_numbers => $ENV{fingers});'

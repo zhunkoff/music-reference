@@ -1,0 +1,347 @@
+% Copyright (c) 2026 Sergey Zhunkov.
+% SPDX-License-Identifier: CC-BY-4.0
+%
+% Set \ChartLanguage to en or ru before loading this source. English is the default.
+\documentclass[a4paper,landscape]{article}
+\IfFileExists{../scales/caged-map-common.tex}{%
+  \input{../scales/caged-map-common.tex}%
+}{%
+  \input{guitar/scales/caged-map-common.tex}%
+}
+\usepackage{lilyglyphs}
+
+\newcommand{\ChartTitle}{\Localize{Гаммы и звуки аккордов}{Scales and chord tones}}
+\newcommand{\MajorTitle}{\Localize{До мажор}{C major}}
+\newcommand{\MinorTitle}{\Localize{Ля натуральный минор}{A natural minor}}
+\hypersetup{
+  pdfauthor={Sergey Zhunkov},
+  pdftitle={\ChartTitle},
+  colorlinks=true,
+  urlcolor=ChartHeading,
+  linkcolor=ChartHeading
+}
+\ifChartRussian
+  \hypersetup{pdflang={ru-RU}}
+\else
+  \hypersetup{pdflang={en}}
+\fi
+
+\begin{luacode*}
+local keys = {
+  C = {
+    tonic = 0,
+    scale = {"C", "D", "E", "F", "G", "A", "B"},
+    intervals = {0, 2, 4, 5, 7, 9, 11},
+    degrees = {"1", "2", "3", "4", "5", "6", "7"},
+    pentatonic = {[1]=true, [2]=true, [3]=true, [5]=true, [6]=true},
+    position = CagedMap.positions[1], -- A form, frets 2–5
+    chords = {{"C", "I", 1}, {"F", "IV", 4}, {"G", "V", 5}},
+    bars = {
+      -- Chord index, followed by {string, fret, duration in eighths, optional T/P}.
+      {1, {{2,5,2,"T"}, {2,3,1,"P"}, {3,5,1}, {4,5,4,"T"}}},
+      {2, {{3,2,2,"T"}, {4,5,1,"P"}, {4,3,1}, {3,5,4,"T"}}},
+      {3, {{3,4,2,"T"}, {2,3,2}, {4,5,4,"T"}}},
+      {1, {{4,5,2,"T"}, {4,2,2}, {5,3,4,"T"}}},
+    },
+  },
+  A = {
+    tonic = 9,
+    scale = {"A", "B", "C", "D", "E", "F", "G"},
+    intervals = {0, 2, 3, 5, 7, 8, 10},
+    degrees = {"1", "2", "♭3", "4", "5", "♭6", "♭7"},
+    pentatonic = {[1]=true, [3]=true, [4]=true, [5]=true, [7]=true},
+    position = CagedMap.positions[2], -- G form, frets 5–8
+    chords = {{"Am", "i", 1}, {"Dm", "iv", 4}, {"Em", "v", 5}},
+    bars = {
+      {1, {{3,5,2,"T"}, {3,7,1,"P"}, {2,5,1}, {4,7,4,"T"}}},
+      {2, {{4,7,4,"T"}, {3,7,2}, {2,6,2,"T"}}},
+      {3, {{2,5,2,"T"}, {2,8,2}, {1,7,4,"T"}}},
+      {1, {{1,5,2,"T"}, {2,5,2}, {4,7,4,"T"}}},
+    },
+  },
+}
+
+local function chord_tones(key, chord)
+  local root = chord[3]
+  local third, fifth = (root + 1) % 7 + 1, (root + 3) % 7 + 1
+  local third_steps = (key.intervals[third] - key.intervals[root]) % 12
+  return {{root, "R"}, {third, third_steps == 3 and "♭3" or "3"}, {fifth, "5"}}
+end
+
+local function roles_by_note(key, chord)
+  local roles = {}
+  for _, tone in ipairs(chord_tones(key, chord)) do
+    roles[key.scale[tone[1]]] = tone[2]
+  end
+  return roles
+end
+
+function PrintImprovisationScale(key_name)
+  local key = keys[key_name]
+  for degree, note in ipairs(key.scale) do
+    tex.sprint(string.format([[\ScaleComparisonCell{%d}{%s}{%s}{%s}]],
+      degree, key.degrees[degree], note, key.pentatonic[degree] and note or "—"))
+  end
+  tex.sprint(string.format([[\PositionLabel{%s}{%d}{%d}]], table.unpack(key.position)))
+end
+
+function PrintChordMaps(key_name)
+  local key = keys[key_name]
+  local _, first_fret, last_fret = table.unpack(key.position)
+  local by_pitch = CagedMap.by_pitch(key.tonic, key.intervals, key.scale)
+  local degree_by_pitch = CagedMap.by_pitch(key.tonic, key.intervals, key.degrees)
+  for index, chord in ipairs(key.chords) do
+    local roles = roles_by_note(key, chord)
+    local members, present, missing = {}, {}, {}
+    for _, tone in ipairs(chord_tones(key, chord)) do
+      local degree, role = table.unpack(tone)
+      local note = key.scale[degree]
+      local membership = key.pentatonic[degree] and present or missing
+      members[#members + 1] = role .. " = " .. note
+      membership[#membership + 1] = note
+    end
+    tex.sprint(string.format([[\BeginChordMap{%d}{%s}{%s}{%s}{%s}{%s}{%d}{%d}]],
+      index, chord[1], chord[2], table.concat(members, [[\quad ]]),
+      table.concat(present, " · "), #missing > 0 and table.concat(missing, " · ") or "—",
+      first_fret, last_fret))
+    for string_number, string_data in ipairs(CagedMap.open_strings) do
+      tex.sprint(string.format([[\MapString{%d}{%s}]], string_number, string_data[2]))
+      for fret = first_fret, last_fret do
+        local pitch = (string_data[1] + fret) % 12
+        local note = by_pitch[pitch]
+        if note then
+          tex.sprint(string.format([[\MapNote{%d}{%d}{%s}{%s}{%s}]],
+            string_number, fret, note, degree_by_pitch[pitch], roles[note] or ""))
+        end
+      end
+    end
+    tex.sprint([[\end{scope}]])
+  end
+end
+
+local letter_index = {C=0, D=1, E=2, F=3, G=4, A=5, B=6}
+
+function PrintPhrase(key_name)
+  local key = keys[key_name]
+  local by_pitch = CagedMap.by_pitch(key.tonic, key.intervals, key.scale)
+  for bar_index, bar in ipairs(key.bars) do
+    local chord = key.chords[bar[1]]
+    local roles = roles_by_note(key, chord)
+    tex.sprint(string.format([[\BeginBar{%d}{%s}]], bar_index, chord[1]))
+    local onset, notes = 0, {}
+    for index, event in ipairs(bar[2]) do
+      local string_number, fret, duration, mark = table.unpack(event)
+      local pitch = CagedMap.open_strings[string_number][1] + fret
+      local note = by_pitch[pitch % 12]
+      -- Written an octave above sounding pitch. Step 0 is E4, the bottom line.
+      local step = 7 * (math.floor(pitch / 12) - 4) + letter_index[note] - 2
+      notes[index] = {
+        string_number = string_number, fret = fret, duration = duration,
+        onset = onset, step = step, mark = mark, role = roles[note],
+      }
+      onset = onset + duration
+    end
+    for index, note in ipairs(notes) do
+      local mark = ""
+      if note.mark == "T" then
+        mark = [[\TargetMark{]] .. note.role .. "}"
+      elseif note.mark == "P" then
+        mark = [[\PassingMark]]
+      end
+      tex.sprint(string.format([[\ScoreNote{%d}{%d}{%d}{%d}{%d}{%s}]],
+        note.onset, note.step, note.duration, note.string_number, note.fret, mark))
+      if note.duration > 1 then
+        local direction = note.step < 4 and 1 or -1
+        tex.sprint(string.format([[\ScoreStem{%d}{%d}{%d}{%d}]],
+          note.onset, note.step, direction, 24 * direction))
+      elseif note.onset % 2 == 0 then
+        -- The eighth notes come in pairs on a beat, with a common stem direction.
+        local next_note = notes[index + 1]
+        local direction = note.step + next_note.step < 8 and 1 or -1
+        local slope = math.max(-5, math.min(5, (next_note.step - note.step) * 1.5))
+        local first_tip = 3.5 * note.step + 24 * direction
+        local last_tip = first_tip + slope
+        tex.sprint(string.format([[\ScoreBeam{%d}{%d}{%d}{%d}{%g}{%g}{%d}]],
+          note.onset, note.step, next_note.onset, next_note.step, first_tip, last_tip, direction))
+      end
+    end
+    tex.sprint([[\end{scope}]])
+  end
+end
+\end{luacode*}
+
+\newcommand{\ScaleComparisonCell}[4]{%
+  \ChartText[base]{136+35*#1}{508}{11}{ChartHeading}{\bfseries #2}%
+  \ChartText[base]{136+35*#1}{490}{11}{ChartInk}{#3}%
+  \ChartText[base]{136+35*#1}{472}{11}{ChartInk}{#4}%
+}
+\newcommand{\PositionLabel}[3]{%
+  \ChartText{\ChartLeft}{449}{11}{ChartHeading}{\bfseries\Localize
+    {Позиция #1 (CAGED) · Лады #2–#3}
+    {CAGED #1 position · Frets #2–#3}}%
+}
+\newcommand{\MapRow}[1]{-95-15*(#1-1)}
+\newcommand{\MapColumn}[1]{55+45*(#1-\MapFirstFret)}
+\newcommand{\BeginChordMap}[8]{%
+  \begin{scope}[shift={({\ChartLeft+263*(#1-1)},441)}]
+    \def\MapFirstFret{#7}%
+    \fill[ChartHeader] (0,0) rectangle (248,-24);
+    \draw[ChartRule,line width=.65bp] (0,0) rectangle (248,-178);
+    \ChartText{11}{-16}{13}{ChartHeading}{\bfseries #2\enspace\mdseries #3}%
+    \ChartText{11}{-41}{11}{ChartInk}{\bfseries #4}%
+    \ChartText{11}{-57}{10}{ChartMuted}{\Localize{В пентатонике}{In pentatonic}
+      \enspace #5\quad \Localize{Нет}{Missing}\enspace #6}%
+    \foreach \row in {2,4,6} {
+      \fill[ChartStripe] (55,{\MapRow{\row}+7.5}) rectangle (235,{\MapRow{\row}-7.5});
+    }
+    \foreach \fret in {#7,...,#8} {
+      \ChartText[base]{\MapColumn{\fret}+22.5}{-80}{10}{ChartHeading}{\bfseries \fret}%
+      \draw[ChartRule,line width=.5bp] ({\MapColumn{\fret}},-85)
+        -- ({\MapColumn{\fret}},-177.5);
+    }
+    \draw[ChartRule,line width=.5bp] (235,-85) -- (235,-177.5);
+}
+\newcommand{\MapString}[2]{%
+  \ChartText[base east]{48}{\MapRow{#1}-3.3}{9.5}{ChartMuted}{\bfseries #1\enspace\mdseries #2}%
+}
+\newcommand{\MapNote}[5]{%
+  \def\CellLabel{#3\kern.12em ·\kern.12em #4}%
+  \ChartText{\MapColumn{#2}+3}{\MapRow{#1}-3.3}{9.5}{ChartInk}{%
+    \ifstrequal{#4}{1}{%
+      \vtop{\hbox{\bfseries\CellLabel}\kern.7bp\hrule height .55bp}%
+    }{\CellLabel}}%
+  \ifstrempty{#5}{}{%
+    \fill[ChartHeading,rounded corners=1.3bp]
+      ({\MapColumn{#2}+27},{\MapRow{#1}-5.5}) rectangle
+      ({\MapColumn{#2}+43},{\MapRow{#1}+5.5});
+    \ChartText[center]{\MapColumn{#2}+35}{\MapRow{#1}}{8.5}{white}{\bfseries #5}%
+  }%
+}
+
+\newcommand{\StaffBottom}{162}
+\newcommand{\StaffY}[1]{\StaffBottom+3.5*(#1)}
+\newcommand{\TabY}[1]{136-7.5*(#1-1)}
+\newcommand{\BeatX}[1]{17+19.5*(#1)}
+\newcommand{\BeginBar}[2]{%
+  \begin{scope}[shift={({94+178*(#1-1)},0)}]
+    \ChartText{17}{229}{13}{ChartInk}{\bfseries #2}%
+}
+\newcommand{\TargetMark}[1]{\Localize{Ц}{T}\kern.15em ·\kern.15em #1}
+\newcommand{\PassingMark}{\Localize{П}{P}}
+\newcommand{\ScoreLedger}[2]{%
+  \draw[black,line width=.6bp] ({\BeatX{#1}-6},{\StaffY{#2}})
+    -- ({\BeatX{#1}+6},{\StaffY{#2}});
+}
+\newcommand{\ScoreNote}[6]{%
+  \ifnum#2<-1
+    \pgfmathtruncatemacro{\LedgerCount}{floor(abs(#2)/2)}%
+    \foreach \ledger in {1,...,\LedgerCount} {\ScoreLedger{#1}{-2*\ledger}}%
+  \fi
+  \ifnum#2>9
+    \pgfmathtruncatemacro{\LedgerCount}{floor((#2-8)/2)}%
+    \foreach \ledger in {1,...,\LedgerCount} {\ScoreLedger{#1}{8+2*\ledger}}%
+  \fi
+  \ChartText[base]{\BeatX{#1}}{\StaffY{#2}}{28}{black}{%
+    \ifnum#3=4 \lilyGlyph{noteheads.s1}\else\lilyGlyph{noteheads.s2}\fi}%
+  \ChartText[base]{\BeatX{#1}}{212}{9.5}{ChartHeading}{\bfseries #6}%
+  \node[fill=white,inner sep=1bp,font=\fontsize{11bp}{11bp}\selectfont\bfseries]
+    at ({\BeatX{#1}},{\TabY{#4}}) {#5};
+}
+\newcommand{\ScoreStem}[4]{%
+  \draw[black,line width=.85bp]
+    ({\BeatX{#1}+3.85*(#3)},{\StaffY{#2}+.8*(#3)})
+    -- ({\BeatX{#1}+3.85*(#3)},{\StaffY{#2}+#4});
+}
+\newcommand{\ScoreBeam}[7]{%
+  \ScoreStem{#1}{#2}{#7}{#5-3.5*(#2)}%
+  \ScoreStem{#3}{#4}{#7}{#6-3.5*(#4)}%
+  \draw[black,line width=2.5bp]
+    ({\BeatX{#1}+3.85*(#7)},{\StaffBottom+#5})
+    -- ({\BeatX{#3}+3.85*(#7)},{\StaffBottom+#6});
+}
+\newcommand{\DrawPhrase}[1]{%
+  \ChartText{\ChartLeft}{248}{12}{ChartHeading}{\bfseries\Localize{Сыграйте фразу}{Play the phrase}}%
+  \ChartText{281}{248}{10.5}{ChartInk}{\Localize
+    {Ц = целевой звук и его роль · П = проходящая нота}
+    {T = target and its chord role · P = passing note}}%
+  \ChartText[base east]{\ChartRight}{248}{10.5}{ChartMuted}{%
+    \Localize{Строй}{Tuning} (6→1) E2–A2–D3–G3–B3–E4}%
+  \foreach \step in {0,2,4,6,8} {
+    \draw[black,line width=.5bp] (55,{\StaffY{\step}}) -- (806,{\StaffY{\step}});
+  }
+  \foreach \tabstring in {1,...,6} {
+    \draw[black,line width=.5bp] (55,{\TabY{\tabstring}}) -- (806,{\TabY{\tabstring}});
+  }
+  \foreach \barline in {55,272,450,628,802} {
+    \draw[black,line width=.75bp] (\barline,\StaffBottom) -- (\barline,{\StaffY{8}})
+      (\barline,{\TabY{6}}) -- (\barline,{\TabY{1}});
+  }
+  \draw[black,line width=2bp] (806,\StaffBottom) -- (806,{\StaffY{8}})
+    (806,{\TabY{6}}) -- (806,{\TabY{1}});
+  \ChartText[base]{68}{\StaffY{2}}{28}{black}{\lilyGlyph{clefs.G}}%
+  \ChartText[base]{68}{\StaffBottom-17}{9}{black}{8}%
+  \ChartText[base]{91}{\StaffY{4}}{28}{black}{\lilyGlyph{four}}%
+  \ChartText[base]{91}{\StaffY{0}}{28}{black}{\lilyGlyph{four}}%
+  \node[fill=white,inner sep=2bp,align=center,font=\fontsize{9bp}{10bp}\selectfont\bfseries]
+    at (71,{\TabY{3.5}}) {T\\A\\B};
+  \directlua{PrintPhrase("#1")}%
+  \ChartText{\ChartLeft}{82}{10.5}{ChartMuted}{\Localize
+    {Гитара звучит на октаву ниже записи (8 под ключом). Цифры TAB — лады, ритм указан на нотном стане.}
+    {Guitar sounds an octave below the written notes (8 under the clef). TAB numbers give frets. Read rhythm from the staff.}}%
+}
+
+\newcommand{\DrawImprovisationFooter}{%
+  \DrawFooter
+  \ChartText{\ChartLeft}{34}{9.5}{ChartInk}{\bfseries\Localize{Источники}{Sources}}%
+  \ChartText{109}{34}{9.5}{ChartMuted}{%
+    \href{https://college.berklee.edu/bt/121/chord.html}{Hal Crook · Berklee Today}\qquad
+    \href{https://lilypond.org/doc/v2.24/Documentation/notation/common-notation-for-fretted-strings}%
+      {LilyPond · \Localize{Гитарная нотация}{Guitar notation}}}%
+  \ChartText{\ChartLeft}{19}{9.5}{ChartInk}{\bfseries\Localize{См. также}{See also}}%
+  \ChartText{109}{19}{9.5}{ChartMuted}{%
+    \href{\ReadmeReference{guitar-scale-maps}}{\Localize{Карты гамм}{Scale maps}}\qquad
+    \href{\ReadmeReference{guitar-pentatonic-maps}}{\Localize{Карты пентатоник}{Pentatonic maps}}\qquad
+    \href{\ReadmeReference{chord-construction}}{\Localize{Построение аккордов}{Chord construction}}\qquad
+    \href{\ReadmeReference{chords-in-keys}}{\Localize{Аккорды в тональности}{Chords in keys}}}%
+}
+
+\newcommand{\ImprovisationPage}[4]{%
+  \DrawHeading{\ChartTitle}{#1}%
+  \ChartText{\ChartLeft}{508}{11}{ChartInk}{\Localize{Ступень}{Scale degree}}%
+  \ChartText{\ChartLeft}{490}{11}{ChartInk}{\Localize{Полная гамма}{Full scale}}%
+  \ChartText{\ChartLeft}{472}{11}{ChartInk}{\Localize{Пентатоника}{Pentatonic}}%
+  \ChartText{433}{508}{10.5}{ChartInk}{\Localize
+    {Тоника и ступени остаются прежними при смене аккордов.}
+    {The tonic and scale degrees stay fixed as the chords change.}}%
+  \ChartText{433}{490}{10.5}{ChartInk}{\Localize
+    {В ячейке указаны нота и ступень. Тоника подчёркнута.}
+    {Each fret cell gives the note and scale degree. The tonic is underlined.}}%
+  \ChartText{433}{472}{10.5}{ChartInk}{\Localize
+    {Метка аккорда: R — основной тон, 3/♭3 — терция, 5 — квинта.}
+    {Chord badge: R = root, 3/♭3 = third, 5 = fifth.}}%
+  \ChartText{433}{454}{10.5}{ChartMuted}{\Localize
+    {Наметьте звук аккорда и послушайте, как к нему ведут соседние ноты.}
+    {Aim for a chord tone and listen to how neighboring notes lead to it.}}%
+  \directlua{PrintImprovisationScale("#2"); PrintChordMaps("#2")}%
+  \DrawPhrase{#2}%
+  \ChartText{\ChartLeft}{68}{10.5}{ChartInk}{#3}%
+  \ChartText{\ChartLeft}{55}{10.5}{ChartInk}{#4}%
+  \DrawImprovisationFooter
+}
+
+\begin{document}
+\PrintChartPage{\MajorTitle}{%
+  \ImprovisationPage{\MajorTitle}{C}{\Localize
+    {E — терция C. Нота D соединяет E и C поступенным движением. Над F такой же ход A–G–F.}
+    {E is the third of C. D connects E to C by step. A–G–F does the same over F.}}{\Localize
+    {B, терции G, нет в пентатонике. Повторите G при смене аккорда: основной тон G становится квинтой C.}
+    {B, the third of G, is outside the pentatonic. Repeat G across the change: root over G, fifth over C.}}%
+}
+\PrintChartPage{\MinorTitle}{%
+  \ImprovisationPage{\MinorTitle}{A}{\Localize
+    {Нота D соединяет C и E поступенным движением. Повторите A при смене Am на Dm: основной тон Am становится квинтой Dm.}
+    {D connects C to E by step. Repeat A across Am to Dm: root over Am, fifth over Dm.}}{\Localize
+    {F (терция Dm) спускается к E (основному тону Em), а B (квинта Em) — к A. В аккорде Em (v) звучит G без диеза.}
+    {F (♭3 of Dm) falls to E (root of Em), and B (fifth of Em) steps down to A. The minor v uses G natural.}}%
+}
+\end{document}
