@@ -40,6 +40,13 @@ sub validate_build_value {
     return $value;
 }
 
+sub read_yaml_boolean {
+    my ($value, $location) = @_;
+    die "$location: expected a YAML boolean (true or false)\n"
+        unless JSON::PP::is_bool($value);
+    return $value ? 1 : 0;
+}
+
 sub read_yaml_options {
     my ($mapping, $location, @supported) = @_;
     die "$location: expected a mapping\n" unless ref($mapping) eq 'HASH';
@@ -53,9 +60,7 @@ sub read_yaml_options {
 
         my $value = $mapping->{$name};
         if ($name eq 'show_finger_numbers') {
-            die "$field: expected a YAML boolean (true or false)\n"
-                unless JSON::PP::is_bool($value);
-            $value = $value ? 'true' : 'false';
+            $value = read_yaml_boolean($value, $field) ? 'true' : 'false';
         }
         $values{$name} = validate_build_value($name, $value, $field);
     }
@@ -64,7 +69,7 @@ sub read_yaml_options {
 
 sub read_build_config {
     my $file = 'build.yaml';
-    my $config = { defaults => {}, documents => {} };
+    my $config = { defaults => {}, documents => {}, book => { table_of_contents => 1 } };
     return $config unless -e $file || -l $file;
 
     eval { require YAML::PP; YAML::PP->VERSION(0.027); 1 }
@@ -77,7 +82,7 @@ sub read_build_config {
     );
     my @yaml_documents = eval { $parser->load_file($file) };
     die "$file: $@" if $@;
-    die "$file: expected a single YAML mapping with defaults and/or documents\n"
+    die "$file: expected a single YAML mapping with optional defaults, documents, and book keys\n"
         unless @yaml_documents == 1 && ref($yaml_documents[0]) eq 'HASH';
     my $settings = $yaml_documents[0];
 
@@ -99,6 +104,15 @@ sub read_build_config {
             $config->{documents}{$source} =
                 read_yaml_options($overrides->{$source}, $location,
                     supported_build_options($registered{$source}));
+        }
+    }
+    if (exists $settings->{book}) {
+        my $book = $settings->{book};
+        die "$file: book: expected a mapping\n" unless ref($book) eq 'HASH';
+        for my $name (sort keys %$book) {
+            my $field = "$file: book.$name";
+            die "$field: unknown option\n" unless $name eq 'table_of_contents';
+            $config->{book}{$name} = read_yaml_boolean($book->{$name}, $field);
         }
     }
     return $config;
@@ -146,14 +160,17 @@ sub write_build_file {
 }
 
 sub write_book_source {
-    my ($language, @plan) = @_;
+    my ($language, $show_contents, @plan) = @_;
     my $title_index = $language eq 'en' ? 2 : 3;
     my $sections = join '', map {
         my $anchor = $_->{document}[1];
         my $title = $_->{document}[$title_index];
         "\\BookDocument{$_->{stem}}{$anchor}{$title}%\n";
     } @plan;
+    my $contents_flag = $show_contents ? 'true' : 'false';
     my $contents = "\\def\\ChartLanguage{$language}\n"
+        . "\\def\\BookShowContents{$contents_flag}\n"
+        . "\\input{accent-color.tex}\n"
         . "\\def\\BookDocuments{%\n$sections}\n"
         . "\\input{../book/music-reference.tex}\n";
     return write_build_file("build/music-reference.$language.tex", $contents);
@@ -210,7 +227,8 @@ sub build_pdfs {
         $accent_input =~ tr{\\}{/};
         run_latexmk($source, "-jobname=%A.$pdf->{suffix}", "-usepretex=$pdf->{pretex}\\input{$accent_input}");
     }
-    run_latexmk(write_book_source($book_language, @plan)) if defined $book_language;
+    run_latexmk(write_book_source($book_language, $config->{book}{table_of_contents}, @plan))
+        if defined $book_language;
     exit 0;
 }
 

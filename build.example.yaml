@@ -28,6 +28,9 @@ defaults:
 # just build-all builds both languages and both fretboard label modes.
 # just build-book uses one language for all sections. It takes the explicit
 # language argument or defaults.language and honors each section's variants.
+book:
+  # Include a clickable contents page in both languages. Set false to omit it.
+  table_of_contents: true
 
 # For per-source overrides, replace the empty mapping below with documents:
 # and uncomment the desired source paths and settings. Paths are relative to
