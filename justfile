@@ -20,6 +20,10 @@ build-intervals $language="":
 build-chord-construction $language="":
     latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(chord-construction), language => $ENV{language});'
 
+# Build the circle of fifths reference.
+build-circle-of-fifths $language="":
+    latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(circle-of-fifths), language => $ENV{language});'
+
 # Build the guitar triad inversion charts.
 build-triads $language="":
     latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(triad-inversions), language => $ENV{language});'

@@ -10,9 +10,9 @@ projects.
 - [English PDF](https://github.com/zhunkoff/music-reference/releases/download/v1.1.0/music-reference.en.pdf)
 - [Russian PDF](https://github.com/zhunkoff/music-reference/releases/download/v1.1.0/music-reference.ru.pdf)
 
-The book includes all the materials below, with finger numbers on the chord chart
-and note names on the fretboard map. Other variants can be built separately
-from the TeX sources.
+A book built from this checkout includes all the materials below, with finger
+numbers on the chord chart and note names on the fretboard map. Other variants
+can be built separately from the TeX sources.
 
 ## Materials
 
@@ -65,6 +65,17 @@ and added tones, seventh spellings, and how to turn a formula into a voicing.
 
 - [Shared TeX source](theory/harmony/chord-construction.tex)
 
+<a name="ref-circle-of-fifths"></a>
+
+### Circle of fifths
+
+A one-page landscape A4 reference for guitarists showing 15 major keys and their
+relative minors, including separate enharmonic spellings. The table lists the
+accidentals for each key signature, and the guide shows how to find relative
+keys and the tonic, subdominant, and dominant.
+
+- [Shared TeX source](theory/keys/circle-of-fifths.tex)
+
 <a name="ref-note-frequencies"></a>
 
 ### Note frequencies
@@ -104,8 +115,8 @@ with octave numbers.
 The guitar chord chart shows finger numbers by default. Use `just build en false`
 for English with plain dots, or `just build-all false` for both languages without
 finger numbers.
-The triad inversion, interval, and chord construction references each have one
-PDF per language.
+The triad inversion, interval, chord construction, and circle of fifths
+references each have one PDF per language.
 The note-frequency chart has one PDF per language.
 See the [build guide](BUILD.md) for Windows, Linux, and macOS installation
 and detailed build instructions.
