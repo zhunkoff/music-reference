@@ -1,0 +1,3 @@
+# The checkout is mounted when the container runs.
+*
+!Dockerfile

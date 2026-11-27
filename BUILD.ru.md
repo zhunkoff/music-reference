@@ -2,8 +2,48 @@
 
 # Сборка PDF
 
-Руководство описывает установку инструментов в Windows, Linux и macOS и сборку
-документов из исходников TeX. Вернуться к [обзору проекта](README.ru.md).
+Руководство описывает сборку документов из исходников TeX в Docker и с помощью
+инструментов, установленных в Windows, Linux или macOS. Вернуться к
+[обзору проекта](README.ru.md).
+
+## Сборка в Docker
+
+Используйте Docker с Linux-контейнерами. [Dockerfile](Dockerfile) устанавливает
+в образ инструменты TeX, шрифты, `just` и YAML::PP. Соберите образ из корня
+репозитория и пересобирайте его после изменений Dockerfile.
+
+```sh
+docker build -t music-reference-build .
+```
+
+В Linux или macOS выполните эти команды из корня репозитория. В Linux с обычным
+Docker Engine параметр `--user` задаёт для создаваемых файлов ваши UID и GID.
+Если вы используете rootless Docker, опустите `--user`, чтобы Docker сопоставил
+пользователя контейнера по умолчанию с вашим пользователем на хосте.
+[Сопоставление UID и GID в Docker](https://docs.docker.com/engine/security/rootless/uid-gid-mapping/).
+
+```sh
+docker run --rm --user "$(id -u):$(id -g)" --mount "type=bind,source=$PWD,target=/workspace" music-reference-build build-all
+docker run --rm --user "$(id -u):$(id -g)" --mount "type=bind,source=$PWD,target=/workspace" music-reference-build build-book en
+docker run --rm --user "$(id -u):$(id -g)" --mount "type=bind,source=$PWD,target=/workspace" music-reference-build build-book ru
+```
+
+В Windows выполните эти команды из того же каталога в PowerShell.
+
+```powershell
+docker run --rm --mount "type=bind,source=$($PWD.Path),target=/workspace" music-reference-build build-all
+docker run --rm --mount "type=bind,source=$($PWD.Path),target=/workspace" music-reference-build build-book en
+docker run --rm --mount "type=bind,source=$($PWD.Path),target=/workspace" music-reference-build build-book ru
+```
+
+Аргументы после имени образа передаются напрямую в `just`. Например,
+`build-fretboard en octaves` собирает один вариант карты грифа, а `clean` удаляет
+вспомогательные файлы. `build-all` собирает оба языка и оба режима подписей грифа.
+Отдельные PDF сохраняются рядом с исходниками TeX, а сборники — в файлы
+`build/music-reference.en.pdf` и `build/music-reference.ru.pdf`. Контейнер читает
+необязательный `build.yaml` из смонтированного репозитория. Допустимые настройки
+и их переопределение аргументами описаны в разделе
+[«Конфигурация сборки»](#конфигурация-сборки).
 
 ## Необходимые инструменты
 
@@ -697,4 +737,5 @@ just clean
 компиляция через LuaLaTeX, инкрементальная сборка и очистка проверены на macOS
 с LuaHBTeX 1.21.0 из TeX Live 2025, `latexmk` 4.86a, `just` 1.59.0
 и YAML::PP 0.43.0. Инструкции по установке в Windows и Linux сверены
-с документацией поставщиков. Сборка на этих платформах пока не проверена.
+с документацией поставщиков. Сборка с инструментами, установленными
+непосредственно в этих системах, пока не проверена.

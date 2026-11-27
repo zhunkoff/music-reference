@@ -2,8 +2,48 @@ English | [Русский](BUILD.ru.md)
 
 # Building PDFs
 
-This guide covers tool installation on Windows, Linux, and macOS, and building the
-documents from their TeX sources. Return to the [project overview](README.md).
+This guide covers building the documents from their TeX sources with Docker or
+with tools installed on Windows, Linux, and macOS. Return to the
+[project overview](README.md).
+
+## Building with Docker
+
+Use Docker with Linux containers. The [Dockerfile](Dockerfile) installs the TeX
+toolchain, fonts, `just`, and YAML::PP in the image. Build it from the root of
+the checkout and rebuild it when the Dockerfile changes.
+
+```sh
+docker build -t music-reference-build .
+```
+
+On Linux or macOS, run these commands from the root of the checkout. On Linux
+with the standard Docker Engine, `--user` gives generated files your UID and
+GID. If you use rootless Docker, omit `--user` so Docker maps the container's
+default user to your host user.
+[Docker UID/GID mapping](https://docs.docker.com/engine/security/rootless/uid-gid-mapping/).
+
+```sh
+docker run --rm --user "$(id -u):$(id -g)" --mount "type=bind,source=$PWD,target=/workspace" music-reference-build build-all
+docker run --rm --user "$(id -u):$(id -g)" --mount "type=bind,source=$PWD,target=/workspace" music-reference-build build-book en
+docker run --rm --user "$(id -u):$(id -g)" --mount "type=bind,source=$PWD,target=/workspace" music-reference-build build-book ru
+```
+
+From PowerShell on Windows, use these commands from the same directory.
+
+```powershell
+docker run --rm --mount "type=bind,source=$($PWD.Path),target=/workspace" music-reference-build build-all
+docker run --rm --mount "type=bind,source=$($PWD.Path),target=/workspace" music-reference-build build-book en
+docker run --rm --mount "type=bind,source=$($PWD.Path),target=/workspace" music-reference-build build-book ru
+```
+
+The arguments after the image name go directly to `just`. For example, use
+`build-fretboard en octaves` to select one fretboard variant or `clean` to remove
+auxiliary files. `build-all` generates both languages and both fretboard label
+modes. Standalone PDFs are written beside their TeX sources. The books are
+written to `build/music-reference.en.pdf` and `build/music-reference.ru.pdf`.
+The container reads the optional `build.yaml` from the mounted checkout. See
+[Build configuration](#build-configuration) for its options and how recipe
+arguments override them.
 
 ## Requirements
 
@@ -682,5 +722,5 @@ YAML configuration, the English and Russian variants, both combined PDFs,
 direct LuaLaTeX compilation, incremental builds, and cleanup were checked on
 macOS with LuaHBTeX 1.21.0 from TeX Live 2025, `latexmk` 4.86a, `just` 1.59.0,
 and YAML::PP 0.43.0. Windows and Linux installation instructions were checked
-against the supplier documentation. Build execution on those platforms
-remains to be verified.
+against the supplier documentation. Builds with tools installed directly on
+those platforms remain to be verified.
