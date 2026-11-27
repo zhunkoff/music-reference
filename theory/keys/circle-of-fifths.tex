@@ -1,0 +1,290 @@
+% Copyright (c) 2026 Sergey Zhunkov.
+% SPDX-License-Identifier: CC-BY-4.0
+% https://creativecommons.org/licenses/by/4.0/
+%
+% Set \ChartLanguage to en or ru before loading this source. English is the default.
+\documentclass[a4paper,landscape]{article}
+\usepackage[margin=0pt]{geometry}
+\usepackage{fontspec}
+\usepackage{babel}
+\usepackage{etoolbox}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,babel}
+\usepackage{luacode}
+\usepackage{hyperref}
+
+\providecommand{\ChartLanguage}{en}
+\newif\ifChartRussian
+\ifdefstring{\ChartLanguage}{ru}{%
+  \ChartRussiantrue
+  \babelprovide[import,main]{russian}
+  \babelprovide[import]{english}
+}{%
+  \ifdefstring{\ChartLanguage}{en}{%
+    \babelprovide[import,main]{english}
+    \babelprovide[import]{russian}
+  }{%
+    \PackageError{circle-of-fifths}{Unsupported ChartLanguage '\ChartLanguage'}
+      {Set ChartLanguage to en or ru.}
+  }%
+}
+
+\setmainfont{DejaVuSansCondensed.ttf}[
+  BoldFont=DejaVuSansCondensed-Bold.ttf,
+  Ligatures=NoCommon,
+  RawFeature={-kern,-clig}
+]
+\pagestyle{empty}
+
+\definecolor{ChartInk}{RGB}{23,43,50}
+\definecolor{ChartMuted}{RGB}{70,91,99}
+\providecommand{\ChartAccentHex}{195755}
+\definecolor{ChartAccent}{HTML}{\ChartAccentHex}
+\definecolor{ChartRule}{RGB}{197,208,209}
+\definecolor{ChartHeader}{RGB}{231,239,239}
+\definecolor{ChartStripe}{RGB}{244,247,247}
+\definecolor{ChartHighlight}{RGB}{221,237,234}
+
+\newcommand{\Localize}[2]{\ifChartRussian#1\else#2\fi}
+\newcommand{\ChartTitle}{\Localize{Квинтовый круг}{Circle of fifths}}
+\newcommand{\ChartSubtitle}{\Localize
+  {Мажорные и минорные тональности, ключевые знаки и главные ступени}
+  {Major and minor keys, key signatures, and the tonic, subdominant, and dominant}}
+\hypersetup{
+  pdftitle={\ChartTitle},
+  pdfauthor={Sergey Zhunkov},
+  pdfsubject={\ChartSubtitle},
+  colorlinks=true,
+  urlcolor=ChartAccent!33!ChartInk
+}
+\ifChartRussian
+  \hypersetup{pdflang={ru-RU}}
+\else
+  \hypersetup{pdflang={en}}
+\fi
+
+\begin{luacode*}
+local sharps = {"F♯", "C♯", "G♯", "D♯", "A♯", "E♯", "B♯"}
+local flats = {"B♭", "E♭", "A♭", "D♭", "G♭", "C♭", "F♭"}
+
+-- Signed fifths from C: negative for flats, positive for sharps.
+-- Each entry spells the major tonic and its relative minor tonic.
+local keys = {
+  [-7] = {"C♭", "A♭"},
+  [-6] = {"G♭", "E♭"},
+  [-5] = {"D♭", "B♭"},
+  [-4] = {"A♭", "F"},
+  [-3] = {"E♭", "C"},
+  [-2] = {"B♭", "G"},
+  [-1] = {"F",  "D"},
+  [0]  = {"C",  "A"},
+  [1]  = {"G",  "E"},
+  [2]  = {"D",  "B"},
+  [3]  = {"A",  "F♯"},
+  [4]  = {"E",  "C♯"},
+  [5]  = {"B",  "G♯"},
+  [6]  = {"F♯", "D♯"},
+  [7]  = {"C♯", "A♯"},
+}
+
+local function emit(command, ...)
+  tex.sprint("\\" .. command .. "{" .. table.concat({...}, "}{") .. "}")
+end
+
+function PrintFifthsCircle()
+  for fifths = -#flats, #sharps do
+    local position = fifths % 12
+    local offset = 0
+    local count = tostring(math.abs(fifths))
+    if fifths < 0 then
+      count = count .. "♭"
+      if fifths + 12 <= #sharps then
+        offset = -17 -- Lower row in a shared sector.
+      end
+    elseif fifths > 0 then
+      count = count .. "♯"
+      if fifths - 12 >= -#flats then
+        offset = 17 -- Upper row in a shared sector.
+        emit("SplitSector", position)
+      end
+    end
+    emit("KeyPair", position, offset, keys[fifths][1], keys[fifths][2], count)
+  end
+end
+
+function PrintSignatureTable()
+  for count = 1, #sharps do
+    emit("SignatureRow", count,
+      table.concat(sharps, "\\ ", 1, count),
+      table.concat(flats, "\\ ", 1, count))
+  end
+end
+\end{luacode*}
+
+% Coordinates and font sizes are in PDF points, measured from the bottom left.
+\newcommand{\ChartText}[6][base west]{%
+  \node[anchor=#1,inner sep=0pt,outer sep=0pt,text=#5,
+    font=\fontsize{#4bp}{#4bp}\selectfont] at ({#2},{#3}) {#6};%
+}
+\newcommand{\ChartLeft}{34}
+\newcommand{\ChartRight}{808}
+\newcommand{\SidebarLeft}{488}
+\newcommand{\SectorAngle}[1]{90-30*(#1)}
+\newcommand{\PairX}[1]{151*cos(\SectorAngle{#1})}
+\newcommand{\PairY}[1]{151*sin(\SectorAngle{#1})}
+
+\newcommand{\KeyPair}[5]{%
+  \ChartText[base]{\PairX{#1}-16}{\PairY{#1}+#2+2}{15}{ChartInk}{\bfseries #3}%
+  \ChartText[base]{\PairX{#1}+16}{\PairY{#1}+#2+2}{13}{ChartInk}{#4m}%
+  \ChartText[base]{\PairX{#1}}{\PairY{#1}+#2-10}{10.5}{ChartInk}{#5}%
+}
+
+\newcommand{\SplitSector}[1]{%
+  \draw[ChartMuted,line width=.5bp]
+    ({\PairX{#1}-31},{\PairY{#1}+1}) -- ({\PairX{#1}+31},{\PairY{#1}+1});%
+}
+
+\newcommand{\DrawCircle}{%
+  \begin{scope}[shift={(247,282)}]
+    \fill[ChartStripe] (0,0) circle[radius=199bp];
+    \fill[ChartAccent!16!white] (0,0) -- (75:199)
+      arc[start angle=75,end angle=105,radius=199bp] -- cycle;
+    \fill[ChartHighlight] (0,0) -- (-45:199)
+      arc[start angle=-45,end angle=-135,radius=199bp] -- cycle;
+    \fill[white] (0,0) circle[radius=100bp];
+    \draw[ChartRule,line width=.7bp] (0,0) circle[radius=199bp]
+      (0,0) circle[radius=100bp];
+    \foreach \position in {0,...,11}{%
+      \draw[ChartRule,line width=.65bp]
+        ({\SectorAngle{\position}+15}:100) -- ({\SectorAngle{\position}+15}:199);
+    }
+    \draw[ChartAccent!33!ChartInk,line width=1.15bp,-{Stealth[length=6bp]}]
+      (104:84) arc[start angle=104,end angle=140,radius=84bp];
+    \draw[ChartAccent!33!ChartInk,line width=1.15bp,-{Stealth[length=6bp]}]
+      (76:84) arc[start angle=76,end angle=40,radius=84bp];
+    \ChartText[base]{-43}{40}{10}{ChartInk}{\Localize{чистая кварта}{perfect fourth}}%
+    \ChartText[base]{43}{40}{10}{ChartInk}{\Localize{чистая квинта}{perfect fifth}}%
+    \ChartText{-66}{16}{13}{ChartInk}{\bfseries C}%
+    \ChartText{-37}{16}{11}{ChartInk}{\Localize{Мажор (слева)}{Major (left)}}%
+    \ChartText{-66}{-4}{13}{ChartInk}{Am}%
+    \ChartText{-37}{-4}{11}{ChartInk}{\Localize{Минор (справа)}{Minor (right)}}%
+    \ChartText{-66}{-24}{11}{ChartInk}{0}%
+    \ChartText{-37}{-24}{11}{ChartInk}{\Localize{Без знаков}{No accidentals}}%
+    \ChartText[base]{0}{-51}{10}{ChartMuted}{\Localize
+      {B = си,\enspace B♭ = си-бемоль}
+      {International note names C to B}}%
+    \directlua{PrintFifthsCircle()}%
+  \end{scope}%
+  \node[anchor=north,inner sep=0pt,outer sep=0pt,text=ChartInk,
+    text width=430bp,align=center,font=\fontsize{10.5bp}{13bp}\selectfont] at (247,77) {%
+    \Localize
+      {В одном секторе энгармонические тоники звучат одинаково в равномерной
+       темперации. У каждой записи свой набор ключевых знаков.}
+      {Enharmonic tonics in a shared sector sound alike in equal temperament.
+       Each spelling has its own key signature.}%
+  };%
+}
+
+\newcommand{\SignatureBaseline}[1]{469-16*(#1)}
+\newcommand{\SignatureRow}[3]{%
+  \ifodd#1\relax
+    \fill[ChartStripe] (\SidebarLeft,{\SignatureBaseline{#1}-5})
+      rectangle (\ChartRight,{\SignatureBaseline{#1}+11});
+  \fi
+  \ChartText[base]{511}{\SignatureBaseline{#1}}{11}{ChartInk}{#1}%
+  \ChartText{541}{\SignatureBaseline{#1}}{11}{ChartInk}{#2}%
+  \ChartText{677}{\SignatureBaseline{#1}}{11}{ChartInk}{#3}%
+}
+
+\newcommand{\DrawSignatures}{%
+  \ChartText{\SidebarLeft}{491}{14}{ChartInk}{\bfseries\Localize
+    {Порядок ключевых знаков}{Key signatures in order}}%
+  \fill[ChartHeader] (\SidebarLeft,464) rectangle (\ChartRight,483);
+  \ChartText[base]{511}{471}{10}{ChartInk}{\bfseries\Localize{Число}{Count}}%
+  \ChartText{541}{471}{10}{ChartInk}{\bfseries\Localize{Диезы}{Sharps}}%
+  \ChartText{677}{471}{10}{ChartInk}{\bfseries\Localize{Бемоли}{Flats}}%
+  \directlua{PrintSignatureTable()}%
+  \draw[ChartRule,line width=.65bp] (\SidebarLeft,352) -- (\ChartRight,352);
+}
+
+\newcommand{\GuideSection}[2]{%
+  {\color{ChartAccent!33!ChartInk}\fontsize{12bp}{14bp}\selectfont\bfseries #1\par}%
+  \vspace{2bp}%
+  #2\par
+  \vspace{6bp}%
+}
+
+\newcommand{\DrawGuide}{%
+  \node[anchor=north west,inner sep=0pt,outer sep=0pt,text=ChartInk,
+    text width=320bp,align=left,font=\fontsize{11bp}{14bp}\selectfont]
+    at (\SidebarLeft,337) {%
+    \GuideSection{\Localize{Движение по кругу}{Follow the circle}}{\Localize
+      {По часовой стрелке шаг равен чистой квинте вверх, против часовой —
+       чистой кварте вверх. От C по часовой (\mbox{C → G → D}) добавляются
+       диезы, против часовой (\mbox{C → F → B♭}) — бемоли.}
+      {Go up a perfect fifth clockwise. Go up a perfect fourth counterclockwise.
+       The path \mbox{C → G → D} adds sharps, and \mbox{C → F → B♭} adds flats.}}%
+    \GuideSection{\Localize{Параллельные и одноимённые}{Relative and parallel keys}}{\Localize
+      {Читайте пару в одной строке сектора. У параллельных G мажора и
+       E минора общий ключевой знак F♯. У одноимённых G мажора и G минора
+       общая тоника. Знаки гармонического и мелодического минора пишут у нот.}
+      {Read across one row. G major and E minor are relative keys and share F♯
+       in the signature. G major and G minor are parallel keys and share
+       a tonic. Harmonic and melodic minor add accidentals in the music.}}%
+    \GuideSection{\Localize{Тоника, субдоминанта и доминанта}{Tonic, subdominant, and dominant}}{\Localize
+      {Для D мажора это D (I), G (IV, шаг против часовой) и A
+       (V, шаг по часовой). Квинта вверх от B даёт F♯, от C♭ — G♭.
+       От C♯ это G♯. Тональность G♯ мажор за пределами схемы.}
+      {In D major, use D (I), G (IV, one step counterclockwise), and A (V,
+       one step clockwise). Keep the interval spelling. A fifth above B
+       is F♯, above C♭ it is G♭, and above C♯ it is G♯. The chart stops
+       before \mbox{G♯ major}.}}%
+    \GuideSection{\Localize{Аккорд на V ступени минора}{The chord on degree 5 in minor}}{\Localize
+      {В E миноре V ступень — B. Натуральный минор даёт \mbox{Bm (v)}.
+       Замените D на D♯, чтобы получить мажорный аккорд \mbox{B (V)}.}
+      {In E minor, B is the root on degree 5. Natural minor gives Bm (v).
+       Raise D to D♯ to get a B major triad (V).}}%
+  };%
+}
+
+\newcommand{\DrawFooter}{%
+  \draw[ChartRule,line width=.65bp] (\ChartLeft,47) -- (\ChartRight,47);
+  \ChartText{\ChartLeft}{33}{9.5}{ChartInk}{\bfseries\Localize{Источники}{Sources}}%
+  \ChartText{109}{33}{9.5}{ChartMuted}{%
+    Steps to Music Theory ·
+    \href{https://odp.library.tamu.edu/stepstomusictheory/chapter/major-scales-keys/}
+      {\Localize{ключевые знаки}{key signatures}}%
+    \qquad Open Music Theory ·
+    \href{https://pressbooks.nebraska.edu/openmusictheory/chapter/minor-scales/}
+      {\Localize{минорные тональности}{minor keys}}%
+    \qquad V. T. Williams ·
+    \href{https://folkways.si.edu/voyager/arcirc.htm}
+      {\Localize{квинтовый круг}{circle of fifths}}}%
+  \ChartText{\ChartLeft}{20}{9.5}{ChartInk}{\bfseries\Localize{См. также}{See also}}%
+  \ChartText{109}{20}{9.5}{ChartMuted}{%
+    \href{https://github.com/zhunkoff/music-reference/blob/main/\Localize{README.ru.md}{README.md}\#ref-intervals}
+      {\Localize{Музыкальные интервалы}{Musical intervals}}%
+    \qquad
+    \href{https://github.com/zhunkoff/music-reference/blob/main/\Localize{README.ru.md}{README.md}\#ref-chord-construction}
+      {\Localize{Построение аккордов}{Chord construction}}}%
+  \ChartText[base east]{\ChartRight}{20}{9}{ChartMuted}{%
+    © 2026 \href{https://github.com/zhunkoff/music-reference}{Sergey Zhunkov}
+    \enspace·\enspace \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0}}%
+}
+
+\begin{document}
+\AddToHookNext{shipout/background}{%
+  \put(0,-\paperheight){%
+    \begin{tikzpicture}[overlay,x=1bp,y=1bp]
+      \ChartText{\ChartLeft}{548}{28}{ChartInk}{\bfseries\ChartTitle}%
+      \ChartText{\ChartLeft}{523}{12}{ChartMuted}{\ChartSubtitle}%
+      \draw[ChartRule,line width=.65bp] (\ChartLeft,510) -- (\ChartRight,510);
+      \DrawCircle
+      \DrawSignatures
+      \DrawGuide
+      \DrawFooter
+    \end{tikzpicture}%
+  }%
+}
+\null
+\end{document}

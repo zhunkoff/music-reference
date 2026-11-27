@@ -15,6 +15,8 @@ $fretboard_source = 'guitar/fretboard/6-string-fretboard.tex';
         'Musical intervals', 'Музыкальные интервалы'],
     ['theory/harmony/chord-construction.tex', 'chord-construction',
         'Chord construction', 'Построение аккордов'],
+    ['theory/keys/circle-of-fifths.tex', 'circle-of-fifths',
+        'Circle of fifths', 'Квинтовый круг'],
     ['guitar/triads/triad-inversions.tex', 'triad-inversions',
         'Guitar triad inversions', 'Обращения трезвучий на гитаре'],
 );

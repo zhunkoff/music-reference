@@ -274,6 +274,7 @@ just build-all
 | `just build-fretboard en octaves` | Build only the English fretboard map with octave numbers |
 | `just build-intervals en` | Build only the English interval reference |
 | `just build-chord-construction en` | Build only the English chord construction reference |
+| `just build-circle-of-fifths en` | Build only the English circle of fifths reference |
 | `just build-triads en` | Build only the English guitar triad inversion charts |
 | `just clean` | Remove auxiliary files for registered documents |
 | `just --list` | List available commands |
@@ -494,6 +495,21 @@ of the guitar chord chart's finger-number setting.
 For print verification, select A4 landscape and 100% / actual size. Check each
 language in color and grayscale, especially the chord symbols, flats, sharps,
 and the double flat in `Cdim7`.
+
+### Circle of fifths
+
+The reference in `theory/keys` uses one landscape A4 page per language.
+`just build-all` generates both PDFs. To build just this reference, use
+
+```sh
+just build-circle-of-fifths en
+just build-circle-of-fifths ru
+```
+
+The files are `circle-of-fifths.en.pdf` and `circle-of-fifths.ru.pdf`. For print
+verification, select A4 landscape and 100% / actual size. In both color and
+grayscale, check the labels and signatures in the three shared sectors and
+the accidental lists in the table.
 
 ### Guitar triad inversions
 
