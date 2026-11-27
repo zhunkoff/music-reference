@@ -76,6 +76,18 @@ keys and the tonic, subdominant, and dominant.
 
 - [Shared TeX source](theory/keys/circle-of-fifths.tex)
 
+<a name="ref-chords-in-keys"></a>
+
+### Chords in major and minor keys
+
+A two-page landscape A4 reference for guitarists. Tables give the key
+signature, scale notes, and seven diatonic triads for each of 15 major and
+15 natural minor keys. The guide shows how to read a row and transpose a chord
+progression. A separate example explains the major dominant and dominant seventh
+in A minor.
+
+- [Shared TeX source](theory/harmony/chords-in-keys.tex)
+
 <a name="ref-note-frequencies"></a>
 
 ### Note frequencies
@@ -115,8 +127,8 @@ with octave numbers.
 The guitar chord chart shows finger numbers by default. Use `just build en false`
 for English with plain dots, or `just build-all false` for both languages without
 finger numbers.
-The triad inversion, interval, chord construction, and circle of fifths
-references each have one PDF per language.
+The triad inversion, interval, chord construction, circle of fifths, and
+chords in keys references each have one PDF per language.
 The note-frequency chart has one PDF per language.
 See the [build guide](BUILD.md) for Windows, Linux, and macOS installation
 and detailed build instructions.

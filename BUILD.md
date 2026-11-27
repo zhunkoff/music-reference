@@ -275,6 +275,7 @@ just build-all
 | `just build-intervals en` | Build only the English interval reference |
 | `just build-chord-construction en` | Build only the English chord construction reference |
 | `just build-circle-of-fifths en` | Build only the English circle of fifths reference |
+| `just build-chords-in-keys en` | Build only the English reference for chords in major and minor keys |
 | `just build-triads en` | Build only the English guitar triad inversion charts |
 | `just clean` | Remove auxiliary files for registered documents |
 | `just --list` | List available commands |
@@ -510,6 +511,22 @@ The files are `circle-of-fifths.en.pdf` and `circle-of-fifths.ru.pdf`. For print
 verification, select A4 landscape and 100% / actual size. In both color and
 grayscale, check the labels and signatures in the three shared sectors and
 the accidental lists in the table.
+
+### Chords in major and minor keys
+
+The [shared TeX source](theory/harmony/chords-in-keys.tex) produces two landscape
+A4 pages per language, one for major and one for natural minor. `just build-all`
+generates both PDFs. To build just this reference, use
+
+```sh
+just build-chords-in-keys en
+just build-chords-in-keys ru
+```
+
+The files are `chords-in-keys.en.pdf` and `chords-in-keys.ru.pdf`. For print
+verification, select A4 landscape and 100% / actual size. In color and grayscale,
+check the Roman numerals, accidentals in the six- and seven-sign rows, chord
+symbols, and the layout of the worked examples in both languages.
 
 ### Guitar triad inversions
 
