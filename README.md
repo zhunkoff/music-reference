@@ -99,6 +99,17 @@ a minor pentatonic scale.
 
 - [Shared TeX source](theory/scales/scale-construction.tex)
 
+<a name="ref-guitar-scale-maps"></a>
+
+### Guitar scale maps
+
+Three landscape A4 sheets for C major and A natural minor in standard tuning.
+An overview covers frets 1–24. The two scale sheets show five closed CAGED
+positions each, with tonic-relative degrees, shared frets, and a transposition
+example.
+
+- [Shared TeX source](guitar/scales/major-natural-minor.tex)
+
 <a name="ref-note-frequencies"></a>
 
 ### Note frequencies
