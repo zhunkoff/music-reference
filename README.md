@@ -88,6 +88,17 @@ in A minor.
 
 - [Shared TeX source](theory/harmony/chords-in-keys.tex)
 
+<a name="ref-scale-construction"></a>
+
+### Scale and pentatonic construction
+
+A one-page landscape A4 reference with degree formulas, semitone steps through
+the octave, and note examples for major, natural minor, and both pentatonic
+scales. It compares relative and parallel scales and shows how to transpose
+a minor pentatonic scale.
+
+- [Shared TeX source](theory/scales/scale-construction.tex)
+
 <a name="ref-note-frequencies"></a>
 
 ### Note frequencies

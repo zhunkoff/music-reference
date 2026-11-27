@@ -19,6 +19,8 @@ $fretboard_source = 'guitar/fretboard/6-string-fretboard.tex';
         'Circle of fifths', 'Квинтовый круг'],
     ['theory/harmony/chords-in-keys.tex', 'chords-in-keys',
         'Chords in major and minor keys', 'Аккорды в мажоре и миноре'],
+    ['theory/scales/scale-construction.tex', 'scale-construction',
+        'Scale and pentatonic construction', 'Построение гамм и пентатоник'],
     ['guitar/triads/triad-inversions.tex', 'triad-inversions',
         'Guitar triad inversions', 'Обращения трезвучий на гитаре'],
 );

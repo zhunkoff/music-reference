@@ -1,0 +1,279 @@
+% Copyright (c) 2026 Sergey Zhunkov.
+% SPDX-License-Identifier: CC-BY-4.0
+% https://creativecommons.org/licenses/by/4.0/
+%
+% Set \ChartLanguage to en or ru before loading this source. English is the default.
+\documentclass[a4paper,landscape]{article}
+\usepackage[margin=0pt]{geometry}
+\usepackage{fontspec}
+\usepackage{babel}
+\usepackage{etoolbox}
+\usepackage{tikz}
+\usetikzlibrary{babel}
+\usepackage{luacode}
+\usepackage{hyperref}
+
+\providecommand{\ChartLanguage}{en}
+\newif\ifChartRussian
+\ifdefstring{\ChartLanguage}{ru}{%
+  \ChartRussiantrue
+  \babelprovide[import,main]{russian}
+  \babelprovide[import]{english}
+}{%
+  \ifdefstring{\ChartLanguage}{en}{%
+    \babelprovide[import,main]{english}
+    \babelprovide[import]{russian}
+  }{%
+    \PackageError{scale-construction}{Unsupported ChartLanguage '\ChartLanguage'}
+      {Set ChartLanguage to en or ru.}%
+  }%
+}
+
+\setmainfont{DejaVuSansCondensed.ttf}[
+  BoldFont=DejaVuSansCondensed-Bold.ttf,
+  Ligatures=NoCommon,
+  RawFeature={-kern,-clig}
+]
+\pagestyle{empty}
+
+\definecolor{ChartInk}{RGB}{23,43,50}
+\definecolor{ChartMuted}{RGB}{70,91,99}
+\providecommand{\ChartAccentHex}{195755}
+\definecolor{ChartAccent}{HTML}{\ChartAccentHex}
+\definecolor{ChartRule}{RGB}{197,208,209}
+\definecolor{ChartStripe}{RGB}{244,247,247}
+\colorlet{ChartHeader}{ChartAccent!13!white}
+\colorlet{ChartHeading}{ChartAccent!33!ChartInk}
+
+\newcommand{\Localize}[2]{\ifChartRussian#1\else#2\fi}
+\newcommand{\ChartTitle}{\Localize{Построение гамм и пентатоник}{Scale and pentatonic construction}}
+\hypersetup{
+  pdfauthor={Sergey Zhunkov},
+  pdftitle={\ChartTitle},
+  colorlinks=true,
+  urlcolor=ChartHeading,
+  linkcolor=ChartHeading
+}
+\ifChartRussian
+  \hypersetup{pdflang={ru-RU}}
+\else
+  \hypersetup{pdflang={en}}
+\fi
+
+\begin{luacode*}
+local letters = {"C", "D", "E", "F", "G", "A", "B"}
+local natural_pitches = {0, 2, 4, 5, 7, 9, 11}
+local accidentals = {[-1] = "♭", [0] = "", [1] = "♯"}
+local tonics = {C = {1, 0}, A = {6, 0}, Bflat = {7, -1}}
+
+-- Semitones above the tonic, indexed by degree even when a degree is omitted.
+local major = {0, 2, 4, 5, 7, 9, 11}
+local natural_minor = {0, 2, 3, 5, 7, 8, 10}
+
+local function omit_degrees(scale, first, second)
+  local pentatonic = {table.unpack(scale)}
+  pentatonic[first], pentatonic[second] = nil, nil
+  return pentatonic
+end
+
+local scales = {
+  major = major,
+  natural_minor = natural_minor,
+  major_pentatonic = omit_degrees(major, 4, 7),
+  minor_pentatonic = omit_degrees(natural_minor, 2, 6),
+}
+
+local function scale_data(scale, tonic)
+  local degrees, steps, notes = {}, {}, {}
+  local tonic_letter, tonic_accidental = table.unpack(tonic)
+  local previous = 0
+  for degree, major_pitch in ipairs(major) do
+    local pitch = scale[degree]
+    if pitch then
+      -- Choose the letter from the degree, then set its pitch with an accidental.
+      local letter = (tonic_letter + degree - 2) % #letters + 1
+      local natural_interval = (natural_pitches[letter] - natural_pitches[tonic_letter]) % 12
+      local accidental = tonic_accidental + pitch - natural_interval
+      notes[#notes + 1] = letters[letter] .. assert(accidentals[accidental])
+      degrees[#degrees + 1] = accidentals[pitch - major_pitch] .. degree
+      if degree > 1 then
+        steps[#steps + 1] = pitch - previous
+      end
+      previous = pitch
+    end
+  end
+  steps[#steps + 1] = 12 - previous
+  notes[#notes + 1] = notes[1]
+  return degrees, steps, notes
+end
+
+function PrintScaleColumns(row, scale, tonic)
+  local degrees, steps, notes = scale_data(scales[scale], tonics[tonic])
+  tex.sprint("\\ScaleColumns{" .. row .. "}{"
+    .. table.concat(degrees, " · ") .. "}{"
+    .. table.concat(steps, " · ") .. "}{"
+    .. table.concat(notes, "\\enspace ") .. "}")
+end
+
+function PrintScaleNotes(scale, tonic)
+  local _, _, notes = scale_data(scales[scale], tonics[tonic])
+  tex.sprint(table.concat(notes, "\\enspace "))
+end
+\end{luacode*}
+
+% Coordinates and font sizes are in PDF points, measured from the bottom left.
+\newcommand{\ChartText}[6][base west]{%
+  \node[anchor=#1,inner sep=0pt,outer sep=0pt,text=#5,
+    font=\fontsize{#4bp}{#4bp}\selectfont] at ({#2},{#3}) {#6};%
+}
+\newcommand{\ChartLeft}{34}
+\newcommand{\ChartRight}{808}
+\newcommand{\ScaleX}{45}
+\newcommand{\FormulaX}{252}
+\newcommand{\StepsX}{438}
+\newcommand{\NotesX}{619}
+\newcommand{\RowTop}[1]{467-30*(#1-1)}
+\newcommand{\RowBase}[1]{\RowTop{#1}-19}
+
+\newcommand{\ScaleColumns}[4]{%
+  \ChartText{\FormulaX}{\RowBase{#1}}{12}{ChartHeading}{\bfseries #2}%
+  \ChartText{\StepsX}{\RowBase{#1}}{12}{ChartInk}{#3}%
+  \ChartText{\NotesX}{\RowBase{#1}}{12}{ChartInk}{#4}%
+}
+\newcommand{\ScaleRow}[4]{%
+  \ifodd#1\relax
+    \fill[ChartStripe] (\ChartLeft,{\RowTop{#1+1}}) rectangle (\ChartRight,{\RowTop{#1}});%
+  \fi
+  \ChartText{\ScaleX}{\RowBase{#1}}{12}{ChartInk}{\bfseries #2}%
+  \directlua{PrintScaleColumns(#1, "#3", "#4")}%
+}
+\newcommand{\DrawTable}{%
+  \fill[ChartHeader] (\ChartLeft,467) rectangle (\ChartRight,493);
+  \ChartText{\ScaleX}{475}{11}{ChartInk}{\bfseries\Localize{Гамма}{Scale}}%
+  \ChartText{\FormulaX}{475}{11}{ChartInk}{\bfseries\Localize{Формула ступеней}{Degree formula}}%
+  \ChartText{\StepsX}{475}{11}{ChartInk}{\bfseries\Localize{Шаги в полутонах}{Steps in semitones}}%
+  \ChartText{\NotesX}{475}{11}{ChartInk}{\bfseries\Localize{Пример до октавы}{Example through the octave}}%
+  \ScaleRow{1}{\Localize{Мажор}{Major}}{major}{C}%
+  \ScaleRow{2}{\Localize{Натуральный минор}{Natural minor}}{natural_minor}{A}%
+  \ScaleRow{3}{\Localize{Мажорная пентатоника}{Major pentatonic}}{major_pentatonic}{C}%
+  \ScaleRow{4}{\Localize{Минорная пентатоника}{Minor pentatonic}}{minor_pentatonic}{A}%
+  \foreach \y in {\RowTop{3},\RowTop{5}} {%
+    \draw[ChartRule,line width=.65bp] (\ChartLeft,{\y}) -- (\ChartRight,{\y});%
+  }%
+  \foreach \x in {241,427,608} {%
+    \draw[ChartRule,line width=.65bp] (\x,{\RowTop{5}}) -- (\x,493);%
+  }%
+}
+
+\newcommand{\GuideSection}[2]{%
+  {\color{ChartHeading}\fontsize{13bp}{16bp}\selectfont\bfseries #1\par}%
+  \vspace{4bp}%
+  #2\par
+  \vspace{12bp}%
+}
+\newcommand{\ExampleNotes}[3]{%
+  \par\vspace{4bp}%
+  {\bfseries #1}\enspace\directlua{PrintScaleNotes("#2", "#3")}\par
+  \vspace{4bp}%
+}
+\newcommand{\ComparisonGuide}{%
+  \GuideSection{\Localize{Параллельные гаммы}{Relative scales}}{%
+    \Localize
+      {До мажор и натуральный ля минор содержат одни и те же семь нот.
+       Их пентатоники содержат одни и те же пять нот. В обеих парах при
+       переходе от тоники C к A нота C становится ступенью ♭3 вместо 1,
+       а A становится тоникой вместо ступени 6.}
+      {C major and A natural minor share seven notes, and their pentatonics
+       share five. In each pair, as the tonic moves from C to A, C changes
+       from degree 1 to ♭3 and A changes from degree 6 to 1.}}%
+  \GuideSection{\Localize{Одноимённые гаммы}{Parallel scales}}{%
+    \Localize
+      {До мажор и натуральный до минор имеют общую тонику C. В натуральном
+       миноре ступени 3, 6 и 7 понижены на полутон. Из E, A и B получаются
+       E♭, A♭ и B♭.}
+      {C major and C natural minor share the tonic C. Natural minor lowers
+       degrees 3, 6, and 7 of C major by one semitone, changing E, A, and B
+       to E♭, A♭, and B♭.}%
+    \ExampleNotes{\Localize{Натуральный до минор}{C natural minor}}{natural_minor}{C}}%
+}
+\newcommand{\ConstructionGuide}{%
+  \GuideSection{\Localize{Пять нот из семи}{Five notes from seven}}{%
+    \Localize
+      {Из мажора уберите ступени 4 и 7 (F и B в до мажоре). В натуральном
+       миноре уберите вторую и шестую ноты (B и F в ля миноре).
+       Шестая нота минора записывается в формуле как ♭6.}
+      {From major, omit degrees 4 and 7 (F and B in C major). From natural
+       minor, omit its second and sixth notes (B and F in A minor).
+       The sixth note of natural minor is ♭6 in the major-based formula.}}%
+  \GuideSection{\Localize{Транспонирование}{Transposition}}{%
+    \Localize
+      {Перенесём минорную пентатонику из A в B♭, сохранив формулу и шаги.
+       В си-бемоль мажоре возьмите ступени 1, 3, 4, 5 и 7. Понизьте
+       третью (D) и седьмую (A) на полутон до D♭ и A♭.}
+      {Move A minor pentatonic to B♭, keeping the formula and step pattern.
+       Take degrees 1, 3, 4, 5, and 7 of B♭ major. Lower the third (D) and
+       seventh (A) one semitone to D♭ and A♭.}%
+    \ExampleNotes{\Localize{Минорная пентатоника от B♭}{B♭ minor pentatonic}}{minor_pentatonic}{Bflat}%
+    \Localize
+      {Здесь D♭ - ступень ♭3. В равномерной темперации D♭ и C♯ звучат
+       одинаково, но буква D сохраняет роль третьей ступени от B♭.}
+      {Here D♭ is ♭3. In equal temperament D♭ and C♯ sound the same,
+       but the letter D preserves its role as the third degree above B♭.}}%
+}
+
+\newcommand{\ReadmeReference}[1]{%
+  https://github.com/zhunkoff/music-reference/blob/main/\Localize{README.ru.md}{README.md}\#ref-#1%
+}
+\newcommand{\DrawFooter}{%
+  \draw[ChartRule,line width=.65bp] (\ChartLeft,49) -- (\ChartRight,49);
+  \ChartText{\ChartLeft}{34}{9.5}{ChartInk}{\bfseries\Localize{Источники}{Sources}}%
+  \ChartText{109}{34}{9.5}{ChartMuted}{%
+    Open Music Theory ·
+    \href{https://viva.pressbooks.pub/openmusictheory/chapter/major-scales/}
+      {\Localize{мажорные гаммы}{major scales}} ·
+    \href{https://viva.pressbooks.pub/openmusictheory/chapter/minor-scales/}
+      {\Localize{минорные гаммы}{minor scales}} ·
+    \href{https://viva.pressbooks.pub/openmusictheory/chapter/intro-to-diatonic-modes-and-the-chromatic-scale/}
+      {\Localize{пентатоника}{pentatonic collection}}}%
+  \ChartText{\ChartLeft}{20}{9.5}{ChartInk}{\bfseries\Localize{См. также}{See also}}%
+  \ChartText{109}{20}{9.5}{ChartMuted}{%
+    \href{\ReadmeReference{intervals}}{\Localize{Музыкальные интервалы}{Musical intervals}}%
+    \qquad
+    \href{\ReadmeReference{chords-in-keys}}
+      {\Localize{Аккорды в мажоре и миноре}{Chords in major and minor keys}}}%
+  \ChartText[base east]{\ChartRight}{20}{9}{ChartMuted}{%
+    © 2026 \href{https://github.com/zhunkoff/music-reference}{Sergey Zhunkov}
+    \enspace·\enspace \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0}}%
+}
+
+\begin{document}
+\AddToHookNext{shipout/background}{%
+  \put(0,-\paperheight){%
+    \begin{tikzpicture}[overlay,x=1bp,y=1bp]
+      \ChartText{\ChartLeft}{548}{28}{ChartInk}{\bfseries\ChartTitle}%
+      \ChartText{\ChartLeft}{523}{12}{ChartMuted}{%
+        \Localize
+          {За основу формулы берётся мажорная гамма от той же тоники.}
+          {Each formula uses the major scale on the same tonic as its reference.}}%
+      \draw[ChartRule,line width=.65bp] (\ChartLeft,510) -- (\ChartRight,510);
+      \DrawTable
+      \node[anchor=north west,inner sep=0pt,outer sep=0pt,text=ChartMuted,align=left,
+        text width=774bp,font=\fontsize{11bp}{15bp}\selectfont] at (\ChartLeft,334) {%
+        \Localize
+          {Цифры в формуле обозначают ступени. Ступень 1 - тоника, знак ♭ понижает ступень на полутон.
+           Последний шаг ведёт к верхней тонике. Сумма шагов равна 12 полутонам.
+           Названия нот международные, от C до B (B = си).}
+          {Formula numbers label scale degrees. Degree 1 is the tonic, and ♭ lowers a degree by one semitone.
+           The final step reaches the upper tonic. The steps total 12 semitones. Note names run from C to B.}};
+      \node[anchor=north west,inner sep=0pt,outer sep=0pt,text=ChartInk,align=left,
+        text width=370bp,font=\fontsize{11.5bp}{15bp}\selectfont]
+        at (\ChartLeft,279) {\ComparisonGuide};
+      \node[anchor=north west,inner sep=0pt,outer sep=0pt,text=ChartInk,align=left,
+        text width=374bp,font=\fontsize{11.5bp}{15bp}\selectfont]
+        at (434,279) {\ConstructionGuide};
+      \DrawFooter
+    \end{tikzpicture}%
+  }%
+}%
+\null
+\end{document}
