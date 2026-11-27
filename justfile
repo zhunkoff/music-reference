@@ -28,6 +28,10 @@ build-circle-of-fifths $language="":
 build-chords-in-keys $language="":
     latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(chords-in-keys), language => $ENV{language});'
 
+# Build the scale and pentatonic construction reference.
+build-scale-construction $language="":
+    latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(scale-construction), language => $ENV{language});'
+
 # Build the guitar triad inversion charts.
 build-triads $language="":
     latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(triad-inversions), language => $ENV{language});'

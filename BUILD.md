@@ -276,6 +276,7 @@ just build-all
 | `just build-chord-construction en` | Build only the English chord construction reference |
 | `just build-circle-of-fifths en` | Build only the English circle of fifths reference |
 | `just build-chords-in-keys en` | Build only the English reference for chords in major and minor keys |
+| `just build-scale-construction en` | Build only the English scale and pentatonic construction reference |
 | `just build-triads en` | Build only the English guitar triad inversion charts |
 | `just clean` | Remove auxiliary files for registered documents |
 | `just --list` | List available commands |
@@ -527,6 +528,22 @@ The files are `chords-in-keys.en.pdf` and `chords-in-keys.ru.pdf`. For print
 verification, select A4 landscape and 100% / actual size. In color and grayscale,
 check the Roman numerals, accidentals in the six- and seven-sign rows, chord
 symbols, and the layout of the worked examples in both languages.
+
+### Scale and pentatonic construction
+
+The [shared TeX source](theory/scales/scale-construction.tex) produces one
+landscape A4 page per language. `just build-all` builds both PDFs. To build
+only this reference, run
+
+```sh
+just build-scale-construction en
+just build-scale-construction ru
+```
+
+The files are `scale-construction.en.pdf` and `scale-construction.ru.pdf`.
+For print verification, select landscape A4 at 100% / actual size. In color
+and grayscale, check the degree formulas, flats, closing steps, examples,
+and links.
 
 ### Guitar triad inversions
 
