@@ -277,6 +277,7 @@ just build-all
 | `just build-circle-of-fifths en` | Build only the English circle of fifths reference |
 | `just build-chords-in-keys en` | Build only the English reference for chords in major and minor keys |
 | `just build-scale-construction en` | Build only the English scale and pentatonic construction reference |
+| `just build-guitar-scales en` | Build only the English guitar scale maps |
 | `just build-triads en` | Build only the English guitar triad inversion charts |
 | `just clean` | Remove auxiliary files for registered documents |
 | `just --list` | List available commands |
@@ -544,6 +545,25 @@ The files are `scale-construction.en.pdf` and `scale-construction.ru.pdf`.
 For print verification, select landscape A4 at 100% / actual size. In color
 and grayscale, check the degree formulas, flats, closing steps, examples,
 and links.
+
+### Guitar scale maps
+
+The [shared TeX source](guitar/scales/major-natural-minor.tex) produces three
+landscape A4 sheets per language. The overview maps both scales across frets
+1–24, followed by one sheet per scale with five closed CAGED windows and a
+transposed example. The book places the maps after the scale construction
+reference.
+
+```sh
+just build-guitar-scales en
+just build-guitar-scales ru
+```
+
+The files are `major-natural-minor.en.pdf` and `major-natural-minor.ru.pdf`.
+`just build-all` builds both. For direct LuaLaTeX builds, set
+`\ChartLanguage` to `en` (default) or `ru`. For print verification, use
+landscape A4 at 100% / actual size. In color and grayscale, check fret
+numbers, degree symbols, square tonic markers, and overlaps in the overview.
 
 ### Guitar triad inversions
 
