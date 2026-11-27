@@ -24,6 +24,7 @@ Babel с данными английского и русского языков 
 | Английские и русские переносы | `hyphen-english`, `hyphen-russian` |
 | Выбор шрифтов | `fontspec` |
 | Шрифты DejaVu Sans Condensed | `dejavu` |
+| Символы нотной записи | `lilyglyphs` |
 | Разметка страницы и вспомогательные команды | `geometry`, `etoolbox`, `hyperref` |
 | Сборник PDF | `pdfpages`, `newpax`, `bookmark`, `xcolor` |
 
@@ -99,11 +100,11 @@ sudo dnf install texlive-scheme-full just
 `/etc/portage/package.use/texlive`.
 
 ```text
-app-text/texlive extra graphics luatex l10n_en l10n_ru
+app-text/texlive extra graphics luatex music l10n_en l10n_ru
 ```
 
 Эти флаги выбирают дополнительные шрифты и пакеты LaTeX, графические пакеты,
-LuaTeX и коллекции для английского и русского языков.
+LuaTeX, поддержку нотной записи и коллекции для английского и русского языков.
 [Пакет TeX Live в Gentoo](https://packages.gentoo.org/packages/app-text/texlive).
 
 Выполните команду установки от имени root.
@@ -234,6 +235,8 @@ kpsewhich babel-russian.tex
 kpsewhich tikz.sty
 kpsewhich DejaVuSansCondensed.ttf
 kpsewhich DejaVuSansCondensed-Bold.ttf
+kpsewhich lilyglyphs.sty
+kpsewhich emmentaler-16.otf
 kpsewhich geometry.sty
 kpsewhich etoolbox.sty
 kpsewhich hyperref.sty
@@ -281,6 +284,7 @@ just build-all
 | `just build-scale-construction en` | Собрать только справочник по построению гамм и пентатоник на английском |
 | `just build-guitar-scales en` | Собрать только карты гамм на грифе гитары на английском |
 | `just build-guitar-pentatonics en` | Собрать только карты пентатоник на грифе гитары на английском |
+| `just build-guitar-improvisation en` | Собрать только пособие по гитарной импровизации на английском |
 | `just build-triads en` | Собрать только схемы обращений трезвучий на английском |
 | `just clean` | Удалить вспомогательные файлы зарегистрированных документов |
 | `just --list` | Показать доступные команды |
@@ -622,6 +626,23 @@ just build-triads ru
 В каждой языковой версии проверьте обе страницы в цвете и оттенках серого.
 Обратите внимание на подписи ступеней, ладов и струн и на отметки струн,
 которые не должны звучать.
+
+### Гаммы и звуки аккордов
+
+[Общий исходник TeX](guitar/improvisation/scales-and-chord-tones.tex) даёт
+два альбомных листа A4 на язык. В сборнике они идут после схем обращений
+трезвучий, следующих за картами гамм и пентатоник.
+
+```sh
+just build-guitar-improvisation en
+just build-guitar-improvisation ru
+```
+
+Имена файлов — `scales-and-chord-tones.en.pdf` и `scales-and-chord-tones.ru.pdf`.
+`just build-all` собирает оба PDF. Для проверки печати выберите альбомный A4
+и масштаб 100% / фактический размер. Проверьте метки звуков аккорда,
+целевых и проходящих нот, совмещение нот и табулатуры и ссылки в цвете
+и оттенках серого.
 
 ### Очистка вспомогательных файлов
 

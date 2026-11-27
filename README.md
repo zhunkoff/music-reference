@@ -121,6 +121,17 @@ omitted from the seven-note scale, and a worked transposition.
 
 - [Shared TeX source](guitar/scales/major-minor-pentatonic.tex)
 
+<a name="ref-scales-and-chord-tones"></a>
+
+### Scales and chord tones
+
+Two landscape A4 sheets for improvising over C–F–G–C and Am–Dm–Em–Am.
+Each sheet maps triad members in one fretboard position, shows which chord
+tones the pentatonic omits, and gives an original phrase in standard notation
+and guitar tablature with target and passing notes marked.
+
+- [Shared TeX source](guitar/improvisation/scales-and-chord-tones.tex)
+
 <a name="ref-note-frequencies"></a>
 
 ### Note frequencies

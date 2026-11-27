@@ -27,6 +27,8 @@ $fretboard_source = 'guitar/fretboard/6-string-fretboard.tex';
         'Guitar pentatonic maps', 'Карты пентатоник на грифе гитары'],
     ['guitar/triads/triad-inversions.tex', 'triad-inversions',
         'Guitar triad inversions', 'Обращения трезвучий на гитаре'],
+    ['guitar/improvisation/scales-and-chord-tones.tex', 'scales-and-chord-tones',
+        'Scales and chord tones', 'Гаммы и звуки аккордов'],
 );
 @default_files = map { $_->[0] } @documents;
 
