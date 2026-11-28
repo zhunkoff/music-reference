@@ -46,6 +46,8 @@ documents: {}
   #   fretboard_labels: octaves
   # theory/intervals/intervals.tex:
   #   language: en
+  # theory/rhythm/rhythm-and-meter.tex:
+  #   language: en
   # theory/harmony/chord-construction.tex:
   #   language: en
   # theory/harmony/chords-in-keys.tex:

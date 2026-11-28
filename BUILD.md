@@ -316,6 +316,7 @@ just build-all
 | `just build-all false` | Build both languages without finger numbers, including all four fretboard PDFs |
 | `just build-fretboard en octaves` | Build only the English fretboard map with octave numbers |
 | `just build-intervals en` | Build only the English interval reference |
+| `just build-rhythm en` | Build only the English rhythm and meter reference |
 | `just build-chord-construction en` | Build only the English chord construction reference |
 | `just build-circle-of-fifths en` | Build only the English circle of fifths reference |
 | `just build-chords-in-keys en` | Build only the English reference for chords in major and minor keys |
@@ -686,6 +687,22 @@ The files are `scales-and-chord-tones.en.pdf` and `scales-and-chord-tones.ru.pdf
 `just build-all` builds both. For print verification, use landscape A4 at
 100% / actual size. Check the chord badges, target and passing labels, staff
 and tablature alignment, and links in color and grayscale.
+
+### Rhythm and meter
+
+The [shared TeX source](theory/rhythm/rhythm-and-meter.tex) produces two
+landscape A4 sheets per language. The book places them after the interval
+reference, before chord construction.
+
+```sh
+just build-rhythm en
+just build-rhythm ru
+```
+
+The files are `rhythm-and-meter.en.pdf` and `rhythm-and-meter.ru.pdf`.
+`just build-all` builds both. Use A4 landscape at 100% / actual size to
+check note and rest symbols, beam grouping, count alignment, and the answer
+key. Check both languages in grayscale as well as color.
 
 ### Cleaning build files
 

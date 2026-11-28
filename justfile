@@ -16,6 +16,10 @@ build-fretboard $language="" $labels="":
 build-intervals $language="":
     latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(intervals), language => $ENV{language});'
 
+# Build the rhythm and meter reference.
+build-rhythm $language="":
+    latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(rhythm-and-meter), language => $ENV{language});'
+
 # Build the chord construction reference.
 build-chord-construction $language="":
     latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(chord-construction), language => $ENV{language});'

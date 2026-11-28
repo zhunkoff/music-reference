@@ -13,6 +13,8 @@ $fretboard_source = 'guitar/fretboard/6-string-fretboard.tex';
         'Guitar fretboard map', 'Карта нот на грифе гитары', 'fretboard_labels'],
     ['theory/intervals/intervals.tex', 'intervals',
         'Musical intervals', 'Музыкальные интервалы'],
+    ['theory/rhythm/rhythm-and-meter.tex', 'rhythm-and-meter',
+        'Rhythm and meter', 'Ритм и музыкальный размер'],
     ['theory/harmony/chord-construction.tex', 'chord-construction',
         'Chord construction', 'Построение аккордов'],
     ['theory/keys/circle-of-fifths.tex', 'circle-of-fifths',
