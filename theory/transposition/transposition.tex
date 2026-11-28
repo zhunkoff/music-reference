@@ -1,0 +1,297 @@
+% Copyright (c) 2026 Sergey Zhunkov.
+% SPDX-License-Identifier: CC-BY-4.0
+%
+% Set \ChartLanguage to en or ru before loading this source. English is the default.
+\documentclass[a4paper,landscape]{article}
+\usepackage[margin=0pt]{geometry}
+\usepackage{fontspec,babel,etoolbox,tikz,luacode,hyperref,bookmark,lilyglyphs}
+\usetikzlibrary{babel}
+
+\providecommand{\ChartLanguage}{en}
+\newif\ifChartRussian
+\ifdefstring{\ChartLanguage}{ru}{%
+  \ChartRussiantrue
+  \babelprovide[import,main]{russian}
+  \babelprovide[import]{english}
+}{%
+  \ifdefstring{\ChartLanguage}{en}{%
+    \babelprovide[import,main]{english}
+    \babelprovide[import]{russian}
+  }{%
+    \PackageError{transposition}{Unsupported ChartLanguage '\ChartLanguage'}%
+      {Set ChartLanguage to en or ru.}%
+  }%
+}
+\newcommand{\Localize}[2]{\ifChartRussian#1\else#2\fi}
+
+\setmainfont{DejaVuSansCondensed.ttf}[BoldFont=DejaVuSansCondensed-Bold.ttf]
+\pagestyle{empty}
+\definecolor{ChartInk}{RGB}{23,43,50}
+\definecolor{ChartMuted}{RGB}{70,91,99}
+\definecolor{ChartRule}{RGB}{197,208,209}
+\definecolor{ChartStripe}{RGB}{244,247,247}
+\providecommand{\ChartAccentHex}{195755}
+\definecolor{ChartAccent}{HTML}{\ChartAccentHex}
+\colorlet{ChartHeader}{ChartAccent!13!white}
+\colorlet{ChartHeading}{ChartAccent!33!ChartInk}
+
+\newcommand{\ChartTitle}{\Localize{Транспонирование}{Transposition}}
+\hypersetup{pdfauthor={Sergey Zhunkov},pdftitle={\ChartTitle},
+  colorlinks=true,urlcolor=ChartHeading,linkcolor=ChartHeading}
+\ifChartRussian
+  \hypersetup{pdflang={ru-RU}}
+\else
+  \hypersetup{pdflang={en}}
+\fi
+
+\begin{luacode*}
+local pitch_classes = {"C", "D♭", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"}
+local alternate_names = {[2]="C♯", [4]="D♯", [7]="G♭", [9]="G♯", [11]="A♯"}
+
+function PrintRootLookup()
+  for column, note in ipairs(pitch_classes) do
+    local alternate = alternate_names[column]
+    tex.sprint(string.format([[\LookupRoot{%d}{%s}]], column,
+      alternate and note .. "/" .. alternate or note))
+  end
+  for offset = 0, #pitch_classes - 1 do
+    for column = 1, #pitch_classes do
+      local target = pitch_classes[(column - 1 + offset) % #pitch_classes + 1]
+      tex.sprint(string.format([[\LookupCell{%d}{%d}{%s}]], offset, column, target))
+    end
+  end
+end
+\end{luacode*}
+
+% Coordinates and font sizes are in PDF points, measured from the bottom left.
+\newcommand{\ChartText}[6][base west]{%
+  \node[anchor=#1,inner sep=0pt,outer sep=0pt,text=#5,
+    font=\fontsize{#4bp}{#4bp}\selectfont] at ({#2},{#3}) {#6};%
+}
+\newcommand{\ChartParagraph}[4]{%
+  \node[anchor=north west,inner sep=0pt,outer sep=0pt,text=ChartInk,align=left,
+    text width=#3bp,font=\fontsize{11bp}{14bp}\selectfont] at ({#1},{#2}) {#4};%
+}
+\newcommand{\ChartRuleAt}[1]{\draw[ChartRule,line width=.65bp] (34,#1) -- (808,#1);}
+\newcommand{\ChartHeadingAt}[2]{\ChartText{34}{#1}{15}{ChartHeading}{\bfseries #2}}
+\newcommand{\Card}[4]{%
+  \draw[ChartRule,line width=.65bp,rounded corners=2bp] (#1,#2) rectangle (#3,#4);%
+}
+\newcommand{\ChartArrow}{→}
+\newcommand{\ReferenceLink}[2]{%
+  \href{https://github.com/zhunkoff/music-reference/blob/main/\Localize{README.ru.md}{README.md}\#ref-#1}{#2}%
+}
+\newcommand{\ChartPage}[3]{%
+  \pdfbookmark[0]{#2}{transposition-\thepage}%
+  \AddToHookNext{shipout/background}{%
+    \put(0,-\paperheight){\begin{tikzpicture}[overlay,x=1bp,y=1bp]
+      \ChartText{34}{542}{28}{ChartInk}{\bfseries\ChartTitle}%
+      \ChartText[base east]{808}{542}{12}{ChartHeading}{\bfseries #1 / 2 · #2}%
+      \ChartRuleAt{529}%
+      #3%
+      \ChartRuleAt{43}%
+      \ChartText{34}{27}{9.5}{ChartMuted}{%
+        \textbf{\Localize{См. также}{See also}}\quad
+        \ReferenceLink{intervals}{\Localize{Интервалы}{Intervals}} ·
+        \ReferenceLink{rhythm-and-meter}{\Localize{Ритм и размер}{Rhythm and meter}} ·
+        \ReferenceLink{chord-construction}{\Localize{Построение аккордов}{Chord construction}} ·
+        \ReferenceLink{chords-in-keys}{\Localize{Аккорды в тональностях}{Chords in keys}} ·
+        \ReferenceLink{circle-of-fifths}{\Localize{Квинтовый круг}{Circle of fifths}}}%
+      \ChartText[base east]{808}{27}{9}{ChartMuted}{%
+        © 2026 \href{https://github.com/zhunkoff/music-reference}{Sergey Zhunkov} ·
+        \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0}}%
+    \end{tikzpicture}}%
+  }%
+  \null\newpage
+}
+
+\newcommand{\MethodCard}[3]{%
+  \Card{#1}{371}{#1+250}{510}%
+  \ChartText{#1+12}{489}{12.5}{ChartHeading}{\bfseries #2}%
+  \ChartParagraph{#1+12}{475}{226}{#3}%
+}
+\newcommand{\LookupX}[1]{98+59.1667*(#1-.5)}
+\newcommand{\LookupY}[1]{295-16*(#1+.5)}
+\newcommand{\LookupRoot}[2]{\ChartText[base]{\LookupX{#1}}{301}{10.5}{ChartHeading}{\bfseries #2}}
+\newcommand{\LookupCell}[3]{\ChartText[base]{\LookupX{#2}}{\LookupY{#1}-3.5}{11}{ChartInk}{#3}}
+\newcommand{\RootLookup}{%
+  \fill[ChartHeader] (34,295) rectangle (808,315);%
+  \foreach \offset in {0,...,11}{%
+    \ifodd\offset\relax
+      \fill[ChartStripe] (34,{\LookupY{\offset}-8}) rectangle (808,{\LookupY{\offset}+8});%
+    \fi
+    \ChartText[base]{66}{\LookupY{\offset}-3.5}{10.5}{ChartHeading}{\bfseries +\offset}%
+  }%
+  \draw[ChartRule,line width=.65bp] (98,103) -- (98,315) (34,295) -- (808,295);%
+  \Card{34}{103}{808}{315}%
+  \ChartText[base]{66}{301}{10.5}{ChartHeading}{\bfseries\Localize{Сдвиг}{Shift}}%
+  \directlua{PrintRootLookup()}%
+}
+
+\newcommand{\ScoreGlyph}[3]{\ChartText[base]{#1}{#2}{28}{black}{\lilyGlyph{#3}}}
+\csdef{ScoreSignsharp}{accidentals.sharp}
+\csdef{ScoreSignnatural}{accidentals.natural}
+\newcommand{\ScoreQuarterStem}[2]{%
+  \ifdim#2bp<14bp
+    \draw[black,line width=.82bp] (#1+3.8,#2+.8) -- (#1+3.8,#2+24.5);%
+  \else
+    \draw[black,line width=.82bp] (#1-3.8,#2-.8) -- (#1-3.8,#2-24.5);%
+  \fi
+}
+\newcommand{\MelodyX}[1]{\ifcase#1\or92\or145\or169\or231\or284\or308\fi}
+\newcommand{\MelodyScore}[4]{%
+  \ChartText{#1}{468}{12}{ChartHeading}{\bfseries #2}%
+  \begin{scope}[shift={(#1,420)}]
+    \foreach \liney in {0,7,14,21,28}{\draw[black,line width=.46bp] (0,\liney) -- (356,\liney);}%
+    \draw[black,line width=.65bp] (0,0) -- (0,28) (205,0) -- (205,28) (351,0) -- (351,28);%
+    \draw[black,line width=2bp] (355,0) -- (355,28);%
+    \ScoreGlyph{12}{7}{clefs.G}%
+    #3%
+    \ScoreGlyph{70}{14}{two}%
+    \ScoreGlyph{70}{0}{four}%
+    % Each bar uses one quarter and a beamed pair of eighth notes.
+    \foreach \step/\pitch/\sign [count=\event] in {#4}{%
+      \pgfmathsetmacro{\NoteX}{\MelodyX{\event}}%
+      \pgfmathsetmacro{\NoteY}{3.5*\step}%
+      \ifnum\step=-2\relax
+        \draw[black,line width=.6bp] (\NoteX-6,\NoteY) -- (\NoteX+6,\NoteY);%
+      \fi
+      \ifdefstring{\sign}{none}{}{\ScoreGlyph{\NoteX-10}{\NoteY}{\csuse{ScoreSign\sign}}}%
+      \ScoreGlyph{\NoteX}{\NoteY}{noteheads.s2}%
+      \ifnum\event=1\relax
+        \ScoreQuarterStem{\NoteX}{\NoteY}%
+      \else\ifnum\event=4\relax
+        \ScoreQuarterStem{\NoteX}{\NoteY}%
+      \else
+        \draw[black,line width=.82bp] (\NoteX+3.8,\NoteY+.8) -- (\NoteX+3.8,35);%
+      \fi\fi
+      \ChartText[base]{\NoteX}{-22}{10}{ChartMuted}{\pitch}%
+    }%
+    \draw[black,line width=2.7bp] (148.8,34) -- (172.8,34) (287.8,34) -- (311.8,34);%
+  \end{scope}%
+}
+\newcommand{\EFlatSignature}{%
+  \ScoreGlyph{30}{14}{accidentals.flat}%
+  \ScoreGlyph{41}{24.5}{accidentals.flat}%
+  \ScoreGlyph{52}{10.5}{accidentals.flat}%
+}
+\newcommand{\ProgressionRow}[6]{%
+  \ChartText{46}{#1}{11}{ChartHeading}{\bfseries #2}%
+  \ChartText[base]{395}{#1}{12}{ChartInk}{#3}%
+  \ChartText[base]{508}{#1}{12}{ChartInk}{#4}%
+  \ChartText[base]{621}{#1}{12}{ChartInk}{#5}%
+  \ChartText[base]{734}{#1}{12}{ChartInk}{#6}%
+}
+
+\begin{document}
+\ChartPage{1}{\Localize{Метод и таблица}{Method and lookup}}{%
+  \MethodCard{34}{\Localize{1. Задайте перенос}{1. Set the transposition}}{\Localize
+    {Выберите исходную и целевую тональности одного лада. Задайте
+     направление и регистр. Из до мажора в ми-бемоль мажор перенос
+     C4~\ChartArrow~E♭4 даёт малую терцию вверх (+3 полутона).
+     Примените тот же сдвиг ко всем звукам.}
+    {Choose the source and target keys in the same mode. Set the direction
+     and register. From C major to E♭ major, C4~\ChartArrow~E♭4 moves up
+     a minor third (+3 semitones). Apply the same shift to every pitch.}}%
+  \MethodCard{296}{\Localize{2. Отсчитайте буквы и полутоны}{2. Count letters and semitones}}{\Localize
+    {При переносе по интервалу отсчитайте буквы в нужном направлении,
+     считая исходную за первую. Подберите знак по числу полутонов.
+     C~\ChartArrow~D♭ и C~\ChartArrow~C♯ дают +1. Первая пара образует
+     малую секунду, вторая — увеличенную приму.}
+    {For a named interval, count letters in the chosen direction,
+     starting with the original letter as one. Choose the accidental
+     for the semitone distance. C~\ChartArrow~D♭ and C~\ChartArrow~C♯
+     both give +1. The first is a minor second, the second an augmented unison.}}%
+  \MethodCard{558}{\Localize{3. Проверьте запись и регистр}{3. Check spelling and register}}{\Localize
+    {Прибавьте сдвиг в полутонах со знаком. Выберите написание по целевой
+     тональности и роли ноты. Номер октавы меняется на C.
+     На полутон вверх B4~\ChartArrow~C5, вниз C4~\ChartArrow~B3.
+     Сдвиг ±12 сохраняет класс высоты и меняет октаву.}
+    {Add the signed semitone count. Choose the spelling for the target
+     key and the note’s role. Octave numbers change at C. Up one semitone,
+     B4~\ChartArrow~C5. Down one, C4~\ChartArrow~B3. A shift of ±12
+     keeps the pitch class and changes the octave.}}%
+
+  \ChartHeadingAt{352}{\Localize{Хроматическая таблица основных тонов}{Chromatic root lookup}}%
+  \ChartParagraph{34}{343}{774}{\Localize
+    {Выберите исходный основной тон вверху и строку сдвига в полутонах. Строки показывают подъём в пределах октавы.
+     Для движения вниз прибавляйте 12 к отрицательному сдвигу, пока он не станет неотрицательным.}
+    {Find the source root along the top and the semitone shift on the left. Rows go up within an octave.
+     For downward shifts, add 12 to the negative shift until it is nonnegative.}}%
+  \RootLookup
+  \ChartParagraph{34}{92}{774}{\Localize
+    {Например, −3 даёт строку +9. Из E♭ получаем C. Для сдвигов от +12 и больше вычитайте 12 до попадания в диапазон 0–11.
+     В ячейках по одному имени на класс высоты. Написание выбирайте по контексту, а октаву считайте отдельно.
+     Названия международные, от C до B (B = си).}
+    {For example, −3 uses row +9. From E♭, that gives C. For shifts of +12 or more, subtract 12 until the result is in 0–11.
+     Cells show one name per pitch class. Choose the spelling in context and work out the octave separately.
+     Note names use the international C–B system.}}%
+}
+
+\ChartPage{2}{\Localize{Мелодия и аккорды}{Melody and chords}}{%
+  \ChartHeadingAt{505}{\Localize{Мелодия · на малую терцию вверх (+3)}{Melody · up a minor third (+3)}}%
+  \Card{34}{386}{808}{485}%
+  \MelodyScore{46}{\Localize{Исходная · до мажор}{Source · C major}}{}%
+    {-2/C4/none,0/E4/none,1/F♯4/sharp,2/G4/none,0/E4/none,-2/C4/none}%
+  \MelodyScore{440}{\Localize{Целевая · ми-бемоль мажор}{Target · E♭ major}}{\EFlatSignature}%
+    {0/E♭4/none,2/G4/none,3/A♮4/natural,4/B♭4/none,2/G4/none,0/E♭4/none}%
+  \ChartParagraph{34}{376}{774}{\Localize
+    {Запишите ключевые знаки целевой тональности. F♯ переходит в A♮, повышенную IV ступень.
+     Бекар отменяет ключевой бемоль у A, а E♭ и B♭ получают бемоли по ключу.
+     Интервалы мелодии и ритм сохраняются.}
+    {Write the target key signature. F♯ becomes A♮, the raised fourth degree.
+     The natural cancels the signature’s A♭. E♭ and B♭ take their flats from the signature.
+     The melody keeps its intervals and rhythm.}}%
+
+  \ChartHeadingAt{333}{\Localize{Аккордовые последовательности}{Chord progressions}}%
+  \ChartParagraph{34}{322}{774}{\Localize
+    {Римскими цифрами обозначьте ступени основных тонов. В целевой тональности найдите те же ступени
+     и перенесите качество аккордов и надстройки. Прописные цифры обозначают мажорное трезвучие, строчные — минорное.}
+    {Use Roman numerals for the roots’ scale degrees. Find the same degrees in the target key and carry over
+     each chord’s quality and extensions. The numerals are uppercase for major triads and lowercase for minor triads.}}%
+  \fill[ChartHeader] (34,274) rectangle (808,290);%
+  \fill[ChartHeader] (34,225) rectangle (808,241);%
+  \Card{34}{192}{808}{290}%
+  \ProgressionRow{278}{\Localize{Большая секунда вверх (+2)}{Up a major second (+2)}}{I}{ii}{V7}{I}%
+  \ProgressionRow{262}{\Localize{Исходная · до мажор}{Source · C major}}{C}{Dm}{G7}{C}%
+  \ProgressionRow{246}{\Localize{Целевая · ре мажор}{Target · D major}}{D}{Em}{A7}{D}%
+  \ProgressionRow{229}{\Localize{Большая секунда вниз (−2)}{Down a major second (−2)}}{i}{iv}{V7}{i}%
+  \ProgressionRow{213}{\Localize{Исходная · ля минор}{Source · A minor}}{Am}{Dm}{E7}{Am}%
+  \ProgressionRow{197}{\Localize{Целевая · соль минор}{Target · G minor}}{Gm}{Cm}{D7}{Gm}%
+  \ChartText{34}{178}{10.5}{ChartInk}{\Localize
+    {В минорной последовательности повышенная VII ступень в V7 переносится из G♯ в F♯.}
+    {In the minor progression, the raised seventh degree in V7 moves from G♯ to F♯.}}%
+
+  \Card{34}{68}{528}{165}%
+  \ChartText{46}{148}{12.5}{ChartHeading}{\bfseries\Localize{Бас, надстройки и альтерации}{Bass, extensions, and alterations}}%
+  \ChartParagraph{46}{136}{470}{\Localize
+    {Из до мажора в ре мажор (+2) C/E переходит в D/F♯. Основной тон
+     C~\ChartArrow~D и бас E~\ChartArrow~F♯ сдвигаются вместе, поэтому терция
+     остаётся в басу. G7(♭9) переходит в A7(♭9). Септима остаётся малой,
+     а пониженная нона A♭ становится B♭.}
+    {From C major to D major (+2), C/E becomes D/F♯. The root C~\ChartArrow~D and bass
+     E~\ChartArrow~F♯ move together, keeping the third in the bass.
+     G7(♭9) becomes A7(♭9). The seventh stays minor and the flatted ninth
+     A♭ becomes B♭.}}%
+  \Card{540}{68}{808}{165}%
+  \ChartText{552}{148}{12.5}{ChartHeading}{\bfseries\Localize{Транспонирование и каподастр}{Transposition and capo}}%
+  \ChartParagraph{552}{136}{244}{\Localize
+    {Полный каподастр повышает звучание тех же гитарных аппликатур
+     на полутон за лад. Общий метод применим к нотам и аккордам
+     для любого инструмента.}
+    {A full guitar capo raises the sound of the same shapes by a semitone
+     per fret. The general method applies to written notes and chords
+     for any instrument.}}%
+  \ChartText{34}{55}{9.5}{ChartMuted}{%
+    \textbf{\Localize{Источники}{Sources}}\quad
+    Steps to Music Theory ·
+    \href{https://odp.library.tamu.edu/stepstomusictheory/chapter/more-intervals/}
+      {\Localize{перенос по интервалу}{intervallic transposition}}\qquad
+    Open Music Theory ·
+    \href{https://pressbooks.nebraska.edu/openmusictheory/chapter/chord-symbols/}
+      {\Localize{символы аккордов}{chord symbols}}\qquad
+    University of Puget Sound ·
+    \href{https://musictheory.pugetsound.edu/mt21c/RomanNumeralChordSymbols.html}
+      {\Localize{римские цифры}{Roman numerals}}}%
+}
+\end{document}

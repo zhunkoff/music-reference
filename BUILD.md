@@ -320,6 +320,7 @@ just build-all
 | `just build-chord-construction en` | Build only the English chord construction reference |
 | `just build-circle-of-fifths en` | Build only the English circle of fifths reference |
 | `just build-chords-in-keys en` | Build only the English reference for chords in major and minor keys |
+| `just build-transposition en` | Build only the English transposition reference |
 | `just build-scale-construction en` | Build only the English scale and pentatonic construction reference |
 | `just build-guitar-scales en` | Build only the English guitar scale maps |
 | `just build-guitar-pentatonics en` | Build only the English guitar pentatonic maps |
@@ -703,6 +704,22 @@ The files are `rhythm-and-meter.en.pdf` and `rhythm-and-meter.ru.pdf`.
 `just build-all` builds both. Use A4 landscape at 100% / actual size to
 check note and rest symbols, beam grouping, count alignment, and the answer
 key. Check both languages in grayscale as well as color.
+
+### Transposition
+
+The [shared TeX source](theory/transposition/transposition.tex) produces two
+landscape A4 sheets per language. In the book they follow the reference for
+chords in major and minor keys.
+
+```sh
+just build-transposition en
+just build-transposition ru
+```
+
+The files are `transposition.en.pdf` and `transposition.ru.pdf`.
+`just build-all` builds both. Check table alignment, staff accidentals, beam
+grouping, and chord symbols at 100% / actual size on landscape A4 in color and
+grayscale. Check the reference links in the sheets and in both books.
 
 ### Cleaning build files
 

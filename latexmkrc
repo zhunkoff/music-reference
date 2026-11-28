@@ -21,6 +21,8 @@ $fretboard_source = 'guitar/fretboard/6-string-fretboard.tex';
         'Circle of fifths', 'Квинтовый круг'],
     ['theory/harmony/chords-in-keys.tex', 'chords-in-keys',
         'Chords in major and minor keys', 'Аккорды в мажоре и миноре'],
+    ['theory/transposition/transposition.tex', 'transposition',
+        'Transposition', 'Транспонирование'],
     ['theory/scales/scale-construction.tex', 'scale-construction',
         'Scale and pentatonic construction', 'Построение гамм и пентатоник'],
     ['guitar/scales/major-natural-minor.tex', 'guitar-scale-maps',
