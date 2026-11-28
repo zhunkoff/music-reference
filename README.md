@@ -55,6 +55,16 @@ all five adjacent string pairs in standard tuning.
 
 - [Shared TeX source](theory/intervals/intervals.tex)
 
+<a name="ref-rhythm-and-meter"></a>
+
+### Rhythm and meter
+
+Two landscape A4 sheets for guitarists. The first shows note and rest values
+and counting in 2/4, 3/4, 4/4, and 6/8. The second explains dots, ties, and
+eighth-note triplets and gives four rhythm-reading exercises with answers.
+
+- [Shared TeX source](theory/rhythm/rhythm-and-meter.tex)
+
 <a name="ref-chord-construction"></a>
 
 ### Chord construction

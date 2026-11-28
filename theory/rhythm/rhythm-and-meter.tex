@@ -1,0 +1,419 @@
+% Copyright (c) 2026 Sergey Zhunkov.
+% SPDX-License-Identifier: CC-BY-4.0
+%
+% Set \ChartLanguage to en or ru before loading this source. English is the default.
+\documentclass[a4paper,landscape]{article}
+\usepackage[margin=0pt]{geometry}
+\usepackage{fontspec,babel,etoolbox,tikz,luacode,hyperref,bookmark,lilyglyphs}
+\usetikzlibrary{babel}
+
+\providecommand{\ChartLanguage}{en}
+\newif\ifChartRussian
+\ifdefstring{\ChartLanguage}{ru}{%
+  \ChartRussiantrue
+  \babelprovide[import,main]{russian}
+  \babelprovide[import]{english}
+}{%
+  \ifdefstring{\ChartLanguage}{en}{%
+    \babelprovide[import,main]{english}
+    \babelprovide[import]{russian}
+  }{%
+    \PackageError{rhythm-and-meter}{Unsupported ChartLanguage '\ChartLanguage'}%
+      {Set ChartLanguage to en or ru.}%
+  }%
+}
+\newcommand{\Localize}[2]{\ifChartRussian#1\else#2\fi}
+
+\setmainfont{DejaVuSansCondensed.ttf}[BoldFont=DejaVuSansCondensed-Bold.ttf]
+\pagestyle{empty}
+\definecolor{ChartInk}{RGB}{23,43,50}
+\definecolor{ChartMuted}{RGB}{70,91,99}
+\definecolor{ChartRule}{RGB}{197,208,209}
+\providecommand{\ChartAccentHex}{195755}
+\definecolor{ChartAccent}{HTML}{\ChartAccentHex}
+\colorlet{ChartHeader}{ChartAccent!13!white}
+\colorlet{ChartHeading}{ChartAccent!33!ChartInk}
+
+\newcommand{\ChartTitle}{\Localize{Ритм и музыкальный размер}{Rhythm and meter}}
+\newcommand{\ReadingTitle}{\Localize{Длительности и размеры}{Durations and meters}}
+\newcommand{\PracticeTitle}{\Localize{Разбор и упражнения}{Worked examples and practice}}
+\hypersetup{pdfauthor={Sergey Zhunkov},pdftitle={\ChartTitle},
+  colorlinks=true,urlcolor=ChartHeading,linkcolor=ChartHeading}
+\ifChartRussian
+  \hypersetup{pdflang={ru-RU}}
+\else
+  \hypersetup{pdflang={en}}
+\fi
+
+\begin{luacode*}
+-- Each group starts on a beat. Spaces separate written events; r = rest,
+-- t = triplet eighth, . = augmentation dot, ~ = tie to the next note.
+local bars = {
+  two    = {meter="2/4", groups={"8 8", "16 16 16 16"}, counts={"eighths", "sixteenths"}},
+  three  = {meter="3/4", groups={"8 8", "4", "8 8"}, counts={"eighths", "eighths", "eighths"}},
+  four   = {meter="4/4", groups={"4", "r8 8", "8 8", "4"},
+            counts={"eighths", "eighths", "eighths", "eighths"}},
+  six    = {meter="6/8", groups={"8 8 8", "8 8 8"}, counts={"compound", "compound"}},
+  dot    = {meter="2/4", groups={"8. 16", "4"}, counts={"sixteenths", "beat"}},
+  tie    = {meter="2/4", groups={"4~", "8 8"}, counts={"beat", "eighths"}},
+  tuplet = {meter="2/4", groups={"t8 t8 t8", "8 8"}, counts={"triplet", "eighths"}},
+  A      = {meter="2/4", groups={"r8 8", "8 16 16"}},
+  B      = {meter="3/4", groups={"4. 8", "8 8"}},
+  C      = {meter="4/4", groups={"4", "t8 t8 t8", "4~", "8 r8"}},
+  D      = {meter="6/8", groups={"r8 8 8", "4 8"}},
+}
+
+-- A whole note is 96 ticks. Dots, sixteenths and eighth-note triplets
+-- therefore all have integer lengths.
+local whole = 96
+local values = {[1]=whole, [2]=whole//2, [4]=whole//4, [8]=whole//8, [16]=whole//16}
+local meters = {
+  ["2/4"]={beats=2, beat_ticks=24}, ["3/4"]={beats=3, beat_ticks=24},
+  ["4/4"]={beats=4, beat_ticks=24}, ["6/8"]={beats=2, beat_ticks=36},
+}
+local syllables = {
+  beat       = {""},
+  eighths    = {"", [[\CountAnd]]},
+  sixteenths = {"", [[\CountSecond]], [[\CountAnd]], [[\CountFourth]]},
+  triplet    = {"", [[\CountTrip]], [[\CountLet]]},
+  compound   = {"", [[\CountLa]], [[\CountLi]]},
+}
+
+local function prepare_bar(name, bar)
+  local meter = meters[bar.meter]
+  local numerator, denominator = bar.meter:match("^(%d)/(%d)$")
+  local measure_ticks = tonumber(numerator) * whole // tonumber(denominator)
+  local function check(condition, message)
+    assert(condition, "Rhythm example " .. name .. " (" .. bar.meter .. "): " .. message)
+  end
+
+  local position, previous = 0, nil
+  bar.events, bar.beams = {}, {}
+  for _, written_group in ipairs(bar.groups) do
+    local start, triplets = position, 0
+    local run = {}
+    local function finish_run()
+      if #run > 1 then
+        for _, event in ipairs(run) do event.beamed = true end
+        table.insert(bar.beams, run)
+      end
+      run = {}
+    end
+    for token in written_group:gmatch("%S+") do
+      local prefix, number, dot, tie = token:match("^([rt]?)(%d+)(%.?)(~?)$")
+      local value = tonumber(number)
+      check(values[value], "unknown event " .. token)
+      local event = {value=value, at=position, rest=prefix == "r", triplet=prefix == "t",
+                     dotted=dot == ".", tie=tie == "~"}
+      check(not (event.rest and event.dotted), "dotted rests are outside these examples")
+      local ticks = values[value]
+      if event.dotted then ticks = ticks * 3 // 2 end
+      if event.triplet then
+        check(value == 8 and not event.dotted, "expected an undotted triplet eighth")
+        ticks = ticks * 2 // 3
+        triplets = triplets + 1
+      end
+      if previous and previous.tie then
+        check(not (previous.rest or event.rest), "a tie must connect two notes")
+      end
+      if event.rest or value < 8 then
+        finish_run()
+      else
+        table.insert(run, event)
+      end
+      table.insert(bar.events, event)
+      position, previous = position + ticks, event
+    end
+    finish_run()
+    check(position > start and position % meter.beat_ticks == 0, "group must end on a beat boundary")
+    if triplets > 0 then
+      check(triplets == 3 and position - start == 24 and meter.beat_ticks == 24,
+        "three triplet eighths must fill one quarter-note beat")
+    end
+  end
+  check(position == measure_ticks, "bar has " .. position .. " ticks; expected " .. measure_ticks)
+  check(not previous.tie, "unfinished tie")
+  check(not bar.counts or #bar.counts == meter.beats, "counting pattern must cover every beat")
+  bar.ticks = measure_ticks
+end
+
+for name, bar in pairs(bars) do prepare_bar(name, bar) end
+
+function PrintRhythmBar(name, width)
+  local bar = bars[name]
+  local function x(position)
+    return 54 + (width - 66) * position / bar.ticks
+  end
+  local function draw(format, ...)
+    tex.sprint(string.format(format, ...))
+  end
+  local numerator, denominator = bar.meter:match("^(%d)/(%d)$")
+  draw([[\BarStaff{%d}{%s}{%s}]], width, numerator, denominator)
+  for index, event in ipairs(bar.events) do
+    if event.rest then
+      draw([[\RhythmRest{%d}{%.3f}]], event.value, x(event.at))
+    else
+      draw([[\RhythmNote{%d}{%.3f}{%d}{%d}]], event.value, x(event.at),
+        event.dotted and 1 or 0, event.beamed and 1 or 0)
+    end
+    if event.tie then
+      draw([[\RhythmTie{%.3f}{%.3f}]], x(event.at), x(bar.events[index + 1].at))
+    end
+  end
+  for _, run in ipairs(bar.beams) do
+    local first, last = x(run[1].at), x(run[#run].at)
+    draw([[\RhythmBeam{%.3f}{%.3f}{0}]], first, last)
+    for index, event in ipairs(run) do
+      if event.value == 16 then
+        local after, before = run[index + 1], run[index - 1]
+        local here = x(event.at)
+        if after and after.value == 16 then
+          draw([[\RhythmBeam{%.3f}{%.3f}{1}]], here, x(after.at))
+        elseif not (before and before.value == 16) then
+          local end_hook = here + (index == 1 and 7 or -7)
+          draw([[\RhythmBeam{%.3f}{%.3f}{1}]], here, end_hook)
+        end
+      end
+    end
+    if run[1].triplet then draw([[\RhythmTriplet{%.3f}]], (first + last) / 2) end
+  end
+  local beat_ticks = meters[bar.meter].beat_ticks
+  if bar.counts then
+    for beat, pattern in ipairs(bar.counts) do
+      local parts = syllables[pattern]
+      draw([[\RhythmCount{%.3f}{\bfseries %d}]], x((beat - 1) * beat_ticks), beat)
+      for index = 2, #parts do
+        local position = (beat - 1) * beat_ticks + (index - 1) * beat_ticks // #parts
+        draw([[\RhythmCount{%.3f}{%s}]], x(position), parts[index])
+      end
+    end
+  end
+end
+\end{luacode*}
+
+% Coordinates and font sizes are in PDF points, measured from the bottom left.
+\newcommand{\ChartText}[6][base west]{%
+  \node[anchor=#1,inner sep=0pt,outer sep=0pt,text=#5,
+    font=\fontsize{#4bp}{#4bp}\selectfont] at ({#2},{#3}) {#6};%
+}
+\newcommand{\ChartParagraph}[5]{%
+  \node[anchor=north west,inner sep=0pt,outer sep=0pt,text=ChartInk,
+    text width=#3bp,align=left,font=\fontsize{#4bp}{14bp}\selectfont]
+    at ({#1},{#2}) {#5};%
+}
+\newcommand{\ChartRuleAt}[1]{%
+  \draw[ChartRule,line width=.65bp] (34,#1) -- (808,#1);%
+}
+\newcommand{\ChartHeadingAt}[2]{%
+  \ChartText{34}{#1}{15}{ChartHeading}{\bfseries #2}%
+}
+\newcommand{\Card}[4]{%
+  \draw[ChartRule,line width=.65bp,rounded corners=2bp] (#1,#2) rectangle (#3,#4);%
+}
+\newcommand{\RhythmPage}[3]{%
+  \pdfbookmark[0]{#2}{rhythm-\thepage}%
+  \AddToHookNext{shipout/background}{%
+    \put(0,-\paperheight){\begin{tikzpicture}[overlay,x=1bp,y=1bp]
+      \ChartText{34}{542}{28}{ChartInk}{\bfseries\ChartTitle}%
+      \ChartText[base east]{808}{542}{12}{ChartHeading}{\bfseries #1 / 2 · #2}%
+      \ChartRuleAt{529}%
+      #3%
+      \ChartRuleAt{30}%
+      \ChartText[base east]{808}{17}{9}{ChartMuted}{%
+        © 2026 \href{https://github.com/zhunkoff/music-reference}{Sergey Zhunkov} ·
+        \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0}}%
+    \end{tikzpicture}}%
+  }%
+  \null\newpage
+}
+
+\newcommand{\MusicGlyph}[4][base]{\ChartText[#1]{#2}{#3}{28}{black}{#4}}
+\newcommand{\Staff}[1]{%
+  \foreach \liney in {0,7,14,21,28}{\draw[black,line width=.46bp] (0,\liney) -- (#1,\liney);}%
+}
+\newcommand{\BarStaff}[3]{%
+  \Staff{#1}%
+  \draw[black,line width=.65bp] (0,0) -- (0,28) (#1,0) -- (#1,28);%
+  \MusicGlyph{11}{7}{\lilyGlyph{clefs.G}}%
+  \ChartText[base]{11}{-18}{7}{black}{8}%
+  \MusicGlyph{33}{14}{\lilyGlyph{\csuse{MeterDigit#2}}}%
+  \MusicGlyph{33}{0}{\lilyGlyph{\csuse{MeterDigit#3}}}%
+}
+\csdef{MeterDigit2}{two}
+\csdef{MeterDigit3}{three}
+\csdef{MeterDigit4}{four}
+\csdef{MeterDigit6}{six}
+\csdef{MeterDigit8}{eight}
+
+% A4 sits in the second space. The head, stem, flags and beams share a baseline.
+\newcommand{\RhythmStemTip}{34.7}
+\newcommand{\RhythmStemX}[1]{#1+3.8}
+\newcommand{\RhythmNote}[4]{%
+  \MusicGlyph{#2}{10.5}{\lilyGlyph{noteheads.s\ifcase#1\or0\or1\else2\fi}}%
+  \ifnum#1>1
+    \draw[black,line width=.82bp] ({\RhythmStemX{#2}},11.3) -- ({\RhythmStemX{#2}},\RhythmStemTip);%
+  \fi
+  \ifnum#4=0
+    \ifnum#1=8 \MusicGlyph[base west]{\RhythmStemX{#2}}{\RhythmStemTip}{\lilyGlyph{flags.u3}}\fi
+    \ifnum#1=16 \MusicGlyph[base west]{\RhythmStemX{#2}}{\RhythmStemTip}{\lilyGlyph{flags.u4}}\fi
+  \fi
+  \ifnum#3=1 \fill[black] ({#2+8.7},10.5) circle[radius=1.15bp];\fi
+}
+\newcommand{\RhythmRest}[2]{%
+  \ifnum#1=1 \MusicGlyph{#2}{21}{\lilyGlyph{rests.0}}\fi
+  \ifnum#1=2 \MusicGlyph{#2}{14}{\lilyGlyph{rests.1}}\fi
+  \ifnum#1=4 \MusicGlyph{#2}{14}{\lilyGlyph{rests.2}}\fi
+  \ifnum#1=8 \MusicGlyph{#2}{14}{\lilyGlyph{rests.3}}\fi
+  \ifnum#1=16 \MusicGlyph{#2}{14}{\lilyGlyph{rests.4}}\fi
+}
+\newcommand{\RhythmBeam}[3]{%
+  \draw[black,line width=2.7bp] ({\RhythmStemX{#1}},{\RhythmStemTip-4.4*#3})
+    -- ({\RhythmStemX{#2}},{\RhythmStemTip-4.4*#3});%
+}
+\newcommand{\RhythmTie}[2]{%
+  \fill[black] ({#1+4.5},7.6)
+    .. controls ({(2*#1+#2)/3},-1) and ({(#1+2*#2)/3},-1) .. ({#2-4.5},7.6)
+    .. controls ({(#1+2*#2)/3},-2.6) and ({(2*#1+#2)/3},-2.6) .. cycle;%
+}
+\newcommand{\RhythmTriplet}[1]{%
+  \ChartText[base]{\RhythmStemX{#1}}{38}{21}{black}{\lilyGlyph{three}}%
+}
+\newcommand{\RhythmCount}[2]{\ChartText[base]{#1}{-15}{11}{ChartInk}{#2}}
+\newcommand{\CountAnd}{\Localize{и}{\&}}
+\newcommand{\CountSecond}{\Localize{та}{e}}
+\newcommand{\CountFourth}{\Localize{та}{a}}
+\newcommand{\CountTrip}{\Localize{три}{trip}}
+\newcommand{\CountLet}{\Localize{оль}{let}}
+\newcommand{\CountLa}{\Localize{ла}{la}}
+\newcommand{\CountLi}{\Localize{ли}{li}}
+
+\newcommand{\Score}[4]{%
+  \begin{scope}[shift={(#1,#2)}]
+    \directlua{PrintRhythmBar("#4",#3)}%
+  \end{scope}%
+}
+\newcommand{\DurationColumn}[3]{%
+  \ChartText[base]{#1}{433}{11}{ChartHeading}{\bfseries #3}%
+  \begin{scope}[shift={({#1-31},387)}]\Staff{62}\RhythmNote{#2}{31}{0}{0}\end{scope}%
+  \begin{scope}[shift={({#1-31},346)}]\Staff{62}\RhythmRest{#2}{31}\end{scope}%
+  \ChartText[base]{#1}{333}{11}{ChartInk}{\ifnum#2=1 1\else 1/#2\fi}%
+}
+\newcommand{\MeterCard}[4]{%
+  \Card{#1}{#2-25}{#1+380}{#2+56}%
+  \ChartText{#1+12}{#2+42}{11}{ChartHeading}{\bfseries #4}%
+  \Score{#1+12}{#2}{356}{#3}%
+}
+\newcommand{\WorkedCard}[4]{%
+  \Card{#1}{367}{#1+250}{509}%
+  \ChartText{#1+12}{491}{13}{ChartHeading}{\bfseries #3}%
+  \Score{#1+12}{438}{226}{#2}%
+  \ChartParagraph{#1+12}{410}{226}{10.5}{#4}%
+}
+\newcommand{\ExerciseCard}[3]{%
+  \Card{#1}{#2-24}{#1+380}{#2+57}%
+  \ChartText{#1+12}{#2+45}{13}{ChartHeading}{\bfseries #3}%
+  \Score{#1+12}{#2}{356}{#3}%
+}
+
+\begin{document}
+\RhythmPage{1}{\ReadingTitle}{%
+  \ChartText{34}{507}{12}{ChartInk}{\Localize
+    {Доля — один удар ровного пульса. Метр объединяет доли в повторяющиеся такты, а размер показывает их группировку.}
+    {A beat is one pulse in a steady rhythm. Meter groups beats into recurring bars, and the time signature shows how.}}%
+  \ChartText{34}{489}{12}{ChartInk}{\Localize
+    {Длительности выражают пропорции. В 4/4 при темпе 60 четвертей в минуту одна четверть длится секунду.}
+    {Note values express proportions. In 4/4 at 60 quarter notes per minute, one quarter note lasts one second.}}%
+
+  \ChartHeadingAt{461}{\Localize{Длительности нот и пауз}{Notes and rests}}%
+  \Card{34}{326}{808}{448}%
+  \fill[ChartHeader,rounded corners=2bp] (35,426) rectangle (807,447);%
+  \ChartText{46}{397.5}{11}{ChartInk}{\Localize{Нота}{Note}}%
+  \ChartText{46}{356.5}{11}{ChartInk}{\Localize{Пауза}{Rest}}%
+  \ChartText{46}{333}{11}{ChartInk}{\Localize{Доля целой}{Of a whole note}}%
+  \DurationColumn{197}{1}{\Localize{Целая}{Whole}}%
+  \DurationColumn{331}{2}{\Localize{Половинная}{Half}}%
+  \DurationColumn{465}{4}{\Localize{Четвертная}{Quarter}}%
+  \DurationColumn{599}{8}{\Localize{Восьмая}{Eighth}}%
+  \DurationColumn{733}{16}{\Localize{Шестнадцатая}{Sixteenth}}%
+  \ChartText{34}{314}{10.5}{ChartMuted}{\Localize
+    {Пауза занимает столько же времени, сколько соответствующая нота. Знак целой паузы также обозначает паузу на весь такт.}
+    {A rest lasts as long as the matching note. The whole-rest sign can also mark a full bar of silence.}}%
+  \ChartText{34}{300}{10.5}{ChartMuted}{\Localize
+    {В примерах записана ля первой октавы (II лад третьей струны, звучит октавой ниже). Для чтения ритма подойдёт любая нота.}
+    {The examples use written A4 (third string, second fret, sounding an octave lower). Any pitch works for rhythm practice.}}%
+  \ChartText{34}{286}{10.5}{ChartMuted}{\Localize
+    {Англ. simple и compound означают деление доли на 2 и 3 соответственно. В русской теории 4/4 тоже называют сложным размером (2/4 + 2/4).}
+    {English simple and compound describe beat division. Russian theory calls 4/4 сложный размер (complex meter) because it groups two 2/4 units.}}%
+
+  \ChartHeadingAt{267}{\Localize{Размер и счёт}{Meter and counting}}%
+  \ChartText{34}{252}{11}{ChartInk}{\Localize
+    {Ногой отмечайте доли, голосом считайте все деления, в том числе на паузах и протяжённых нотах. Счёт «1» читается «раз».}
+    {Tap the beats and say each subdivision, including through rests and held notes. Say \& as “and”, e as “ee”, a as “uh”.}}%
+  \MeterCard{34}{185}{two}{\Localize{2/4 · Две четвертные доли}{2/4 · Two quarter-note beats}}%
+  \MeterCard{428}{185}{three}{\Localize{3/4 · Три четвертные доли}{3/4 · Three quarter-note beats}}%
+  \MeterCard{34}{97}{four}{\Localize{4/4 · Четыре четвертные доли}{4/4 · Four quarter-note beats}}%
+  \MeterCard{428}{97}{six}{\Localize{6/8 · Две доли по четверти с точкой}{6/8 · Two dotted-quarter beats}}%
+  \ChartText{34}{55}{11}{ChartInk}{\Localize
+    {В 3/4 шесть восьмых образуют три доли по две (простой размер), в 6/8 — две по три (сложный размер с тройным делением).}
+    {Six eighths fill 3/4 as three groups of two (simple meter) and 6/8 as two groups of three (compound meter).}}%
+  \ChartText{34}{40}{10.5}{ChartMuted}{\Localize
+    {В 2/4 и 4/4 доли тоже делятся надвое. В 6/8 можно считать восьмые «\textbf{1} 2 3 · \textbf{4} 5 6», отмечая ногой только 1 и 4.}
+    {Beats in 2/4 and 4/4 also divide in two. In 6/8 you can count eighths “\textbf{1} 2 3 · \textbf{4} 5 6” and tap only on 1 and 4.}}%
+  \ChartText{34}{17}{9}{ChartMuted}{%
+    \href{https://djvu.online/file/VTDgNlSEOsAix}{\Localize
+      {В. Вахромеев · Элементарная теория музыки, § 19}
+      {V. Vakhromeyev · Elementary Music Theory, § 19}}}%
+}
+
+\RhythmPage{2}{\PracticeTitle}{%
+  \WorkedCard{34}{dot}{\Localize{Точка}{Augmentation dot}}{\Localize
+    {Точка удлиняет ноту наполовину. Восьмая с точкой равна трём шестнадцатым. Следующая нота звучит на второе «та».}
+    {A dot adds half the original value. A dotted eighth lasts three sixteenths. Play the next note on “a”.}}%
+  \WorkedCard{296}{tie}{\Localize{Лига продления}{Tie}}{\Localize
+    {Лига складывает длительности соседних нот одной высоты. На «2» держите ноту, сыграйте снова на «и».}
+    {A tie adds the values of two adjacent notes of the same pitch. Hold on 2 and play again on “and”.}}%
+  \WorkedCard{558}{tuplet}{\Localize{Триоль восьмыми}{Eighth-note triplet}}{\Localize
+    {Три равные триольные восьмые занимают время двух обычных восьмых. Здесь это одна четвертная доля.}
+    {Three equal triplet eighths fit in the time of two ordinary eighths. Here that is one quarter-note beat.}}%
+  \ChartText{34}{351}{10.5}{ChartMuted}{\Localize
+    {Фразировочная лига объединяет ноты во фразу и сохраняет их отдельные длительности.}
+    {A phrasing slur groups notes into a phrase and leaves their durations separate.}}%
+
+  \ChartHeadingAt{327}{\Localize{Чтение ритма}{Rhythm reading}}%
+  \ChartText{34}{312}{11}{ChartInk}{\Localize
+    {Отмечайте доли ногой. Проговорите счёт, затем сыграйте на одной ноте или прохлопайте ритм, считая вслух.}
+    {Tap the beats with your foot. Say the counts, then play on one pitch or clap the rhythm while counting aloud.}}%
+  \ChartText{34}{298}{10.5}{ChartMuted}{\Localize
+    {На паузе заглушите струну, под лигой дайте ей звучать. Начните следующий повтор сразу после последней доли.}
+    {Mute the string at the start of a rest and let it ring through a tie. Loop each bar without losing the pulse.}}%
+  \ExerciseCard{34}{234}{A}%
+  \ExerciseCard{428}{234}{B}%
+  \ExerciseCard{34}{147}{C}%
+  \ExerciseCard{428}{147}{D}%
+
+  \ChartHeadingAt{105}{\Localize{Ответы}{Answer key}}%
+  \ChartText{34}{87}{10.5}{ChartInk}{\textbf{A}\quad\Localize
+    {Пауза на 1. Сыграйте на 1-и, 2, 2-и, 2-та (последнее «та»).}
+    {Rest on 1. Play on 1-\&, 2, 2-\&, and 2-a.}}%
+  \ChartText{428}{87}{10.5}{ChartInk}{\textbf{B}\quad\Localize
+    {Сыграйте на 1, 2-и, 3 и 3-и. Первую ноту держите до 2-и.}
+    {Play on 1, 2-\&, 3, and 3-\&. Hold the first note until 2-\&.}}%
+  \ChartText{34}{71}{10.5}{ChartInk}{\textbf{C}\quad\Localize
+    {Сыграйте на 1, все слоги «2-три-оль» и 3. Держите на 4, пауза на 4-и.}
+    {Play 1, all of “2-trip-let”, and 3. Hold on 4. Rest on 4-\&.}}%
+  \ChartText{428}{71}{10.5}{ChartInk}{\textbf{D}\quad\Localize
+    {Пауза на 1. Сыграйте на 1-ла, 1-ли, 2 и 2-ли.}
+    {Rest on 1. Play on 1-la, 1-li, 2, and 2-li.}}%
+  \ChartText{34}{55}{9.5}{ChartMuted}{\textbf{\Localize{Источники}{Sources}}\quad
+    musictheory.net:
+    \href{https://www.musictheory.net/lessons/11}{\Localize{ноты}{Notes}} ·
+    \href{https://www.musictheory.net/lessons/13}{\Localize{паузы}{Rests}} ·
+    \href{https://www.musictheory.net/lessons/14}{\Localize{точки и лиги}{Dots and ties}} ·
+    \href{https://www.musictheory.net/lessons/15}{\Localize{размеры}{Meter}}\qquad
+    \href{https://openmusictheory.github.io/beams.html}{Open Music Theory · \Localize{группировка и триоли}{Beams and triplets}}\qquad
+    \href{https://lilypond.org/doc/v2.24/Documentation/learning/common-notation.html}{LilyPond · \Localize{лиги}{Ties and slurs}}}%
+  \ChartText{34}{40}{9.5}{ChartMuted}{\textbf{\Localize{См. также}{See also}}\quad
+    \href{https://github.com/zhunkoff/music-reference/blob/main/\Localize{README.ru.md}{README.md}\#ref-scales-and-chord-tones}%
+      {\Localize{Гаммы и звуки аккордов}{Scales and chord tones}}}%
+}
+\end{document}
