@@ -1,0 +1,216 @@
+% Copyright (c) 2026 Sergey Zhunkov.
+% SPDX-License-Identifier: CC-BY-4.0
+%
+% Set \ChartLanguage to en or ru before loading this source. English is the default.
+\documentclass[a4paper,landscape]{article}
+\usepackage[margin=0pt]{geometry}
+\usepackage{fontspec,babel,etoolbox,tikz,luacode,hyperref,bookmark}
+\usetikzlibrary{babel}
+
+\providecommand{\ChartLanguage}{en}
+\newif\ifChartRussian
+\ifdefstring{\ChartLanguage}{ru}{%
+  \ChartRussiantrue
+  \babelprovide[import,main]{russian}
+  \babelprovide[import]{english}
+}{%
+  \ifdefstring{\ChartLanguage}{en}{%
+    \babelprovide[import,main]{english}
+    \babelprovide[import]{russian}
+  }{%
+    \PackageError{capo}{Unsupported ChartLanguage '\ChartLanguage'}%
+      {Set ChartLanguage to en or ru.}%
+  }%
+}
+\newcommand{\Localize}[2]{\ifChartRussian#1\else#2\fi}
+
+\setmainfont{DejaVuSansCondensed.ttf}[BoldFont=DejaVuSansCondensed-Bold.ttf]
+\pagestyle{empty}
+\definecolor{ChartInk}{RGB}{23,43,50}
+\definecolor{ChartMuted}{RGB}{70,91,99}
+\definecolor{ChartRule}{RGB}{197,208,209}
+\definecolor{ChartStripe}{RGB}{244,247,247}
+\providecommand{\ChartAccentHex}{195755}
+\definecolor{ChartAccent}{HTML}{\ChartAccentHex}
+\colorlet{ChartHeader}{ChartAccent!13!white}
+\colorlet{ChartHeading}{ChartAccent!33!ChartInk}
+
+\newcommand{\ChartTitle}{\Localize{Каподастр на гитаре}{Guitar capo}}
+\hypersetup{pdfauthor={Sergey Zhunkov},pdftitle={\ChartTitle},
+  colorlinks=true,urlcolor=ChartHeading,linkcolor=ChartHeading}
+\ifChartRussian
+  \hypersetup{pdflang={ru-RU}}
+\else
+  \hypersetup{pdflang={en}}
+\fi
+
+\begin{luacode*}
+-- Root pitch classes start at C = 0. The suffix travels with the shape.
+local roots = {
+  [""]  = {"C", "D♭", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"},
+  ["m"] = {"C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "G♯", "A", "B♭", "B"},
+}
+local shapes = {
+  {0, ""}, {9, ""}, {7, ""}, {4, ""}, {2, ""},
+  {9, "m"}, {2, "m"}, {4, "m"},
+}
+
+function PrintCapoLookup()
+  for column, shape in ipairs(shapes) do
+    local root, suffix = table.unpack(shape)
+    local names = roots[suffix]
+    tex.sprint(string.format([[\LookupShape{%d}{%s}]], column, names[root + 1] .. suffix))
+    for fret = 0, 12 do
+      local sounding = names[(root + fret) % 12 + 1] .. suffix
+      tex.sprint(string.format([[\LookupCell{%d}{%d}{%s}]], fret, column, sounding))
+    end
+  end
+end
+\end{luacode*}
+
+% Coordinates and font sizes are in PDF points, measured from the bottom left.
+\newcommand{\ChartText}[6][base west]{%
+  \node[anchor=#1,inner sep=0pt,outer sep=0pt,text=#5,
+    font=\fontsize{#4bp}{#4bp}\selectfont] at ({#2},{#3}) {#6};%
+}
+\newcommand{\ChartParagraph}[4]{%
+  \node[anchor=north west,inner sep=0pt,outer sep=0pt,text=ChartInk,align=left,
+    text width=#3bp,font=\fontsize{11bp}{14bp}\selectfont] at ({#1},{#2}) {#4};%
+}
+\newcommand{\ChartRuleAt}[1]{\draw[ChartRule,line width=.65bp] (34,#1) -- (808,#1);}
+\newcommand{\ChartHeadingAt}[2]{\ChartText{34}{#1}{15}{ChartHeading}{\bfseries #2}}
+\newcommand{\Card}[4]{%
+  \draw[ChartRule,line width=.65bp,rounded corners=2bp] (#1,#2) rectangle (#3,#4);%
+}
+\newcommand{\ReferenceLink}[2]{%
+  \href{https://github.com/zhunkoff/music-reference/blob/main/\Localize{README.ru.md}{README.md}\#ref-#1}{#2}%
+}
+\newcommand{\ChartPage}[3]{%
+  \pdfbookmark[0]{#2}{capo-\thepage}%
+  \AddToHookNext{shipout/background}{%
+    \put(0,-\paperheight){\begin{tikzpicture}[overlay,x=1bp,y=1bp]
+      \ChartText{34}{542}{28}{ChartInk}{\bfseries\ChartTitle}%
+      \ChartText[base east]{808}{542}{12}{ChartHeading}{\bfseries #1 / 2 · #2}%
+      \ChartRuleAt{529}%
+      #3%
+      \ChartRuleAt{43}%
+      \ChartText{34}{27}{9.5}{ChartMuted}{%
+        \ReferenceLink{guitar-chords}{\Localize{Гитарные аккорды}{Guitar chords}} ·
+        \ReferenceLink{transposition}{\Localize{Транспонирование}{Transposition}}\qquad
+        \textbf{\Localize{Источник}{Source}}\quad
+        \href{https://www.daddario.com/globalassets/pdfs/accessories/daddario_capo_guide.pdf}
+          {Marc Schonbrun · The D’Addario Capo Guide}}%
+      \ChartText[base east]{808}{27}{9}{ChartMuted}{%
+        © 2026 \href{https://github.com/zhunkoff/music-reference}{Sergey Zhunkov} ·
+        \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0}}%
+    \end{tikzpicture}}%
+  }%
+  \null\newpage
+}
+
+\newcommand{\LookupX}[1]{146+82.75*(#1-.5)}
+\newcommand{\LookupY}[1]{413-19*(#1+.5)}
+\newcommand{\LookupShape}[2]{\ChartText[base]{\LookupX{#1}}{420}{12}{ChartHeading}{\bfseries #2}}
+\newcommand{\LookupCell}[3]{\ChartText[base]{\LookupX{#2}}{\LookupY{#1}-4}{12}{ChartInk}{#3}}
+\newcommand{\CapoLookup}{%
+  \fill[ChartHeader] (34,413) rectangle (808,434);%
+  \foreach \fret in {0,...,12}{%
+    \ifodd\fret\relax
+      \fill[ChartStripe] (34,{\LookupY{\fret}-9.5}) rectangle (808,{\LookupY{\fret}+9.5});%
+    \fi
+    \ChartText[base]{90}{\LookupY{\fret}-4}{11.5}{ChartHeading}{\bfseries\fret}%
+  }%
+  \draw[ChartRule,line width=.65bp] (146,166) -- (146,434) (34,413) -- (808,413);%
+  \Card{34}{166}{808}{434}%
+  \ChartText[base]{90}{420}{11}{ChartHeading}{\bfseries\Localize{Лад каподастра}{Capo fret}}%
+  \directlua{PrintCapoLookup()}%
+}
+
+\newcommand{\ProgressionRow}[7]{%
+  \ChartText{48}{#1}{11}{ChartHeading}{\bfseries #2}%
+  \ChartText[base]{380}{#1}{12}{ChartInk}{#3}%
+  \ChartText[base]{475}{#1}{12}{ChartInk}{#4}%
+  \ChartText[base]{570}{#1}{12}{ChartInk}{#5}%
+  \ChartText[base]{665}{#1}{12}{ChartInk}{#6}%
+  \ChartText[base]{760}{#1}{12}{ChartInk}{#7}%
+}
+
+\begin{document}
+\ChartPage{1}{\Localize{Таблица звучащих аккордов}{Sounding-chord lookup}}{%
+  \ChartParagraph{34}{510}{774}{\Localize
+    {Полный каподастр прижимает все шесть струн. Стандартный строй (струны 6→1) — E2–A2–D3–G3–B3–E4.
+     Сдвиг каподастра на лад вверх повышает все звуки формы на полутон. Лад каподастра считают
+     от верхнего порожка, лады формы — от каподастра.}
+    {A full capo clamps all six strings. Standard tuning without it, from string 6 to 1, is
+     E2–A2–D3–G3–B3–E4. Moving the capo up one fret raises every pitch of the same shape by one semitone.
+     Count the physical capo fret from the nut. In a fingering, the capo becomes fret zero.}}%
+
+  \ChartHeadingAt{460}{\Localize{Звучащий аккорд по ладу каподастра и форме}{Sounding chord by capo fret and shape}}%
+  \ChartParagraph{34}{453}{774}{\Localize
+    {Найдите форму в заголовке и физический лад в левом столбце. Строка 0 означает игру без каподастра.}
+    {Find the shape across the top and the physical capo fret on the left. Row 0 means no capo.}}%
+  \CapoLookup
+  \ChartParagraph{34}{155}{774}{\Localize
+    {Строка 12 повторяет названия из строки 0. Каждый звук на октаву выше.
+     Названия международные (B = си). В парах D♭/C♯, E♭/D♯, F♯/G♭, A♭/G♯ и B♭/A♯
+     оба обозначения соответствуют одному классу высоты. Выбирайте написание по тональности.}
+    {At fret 12 the chord names repeat, with every pitch an octave above row 0. Names use the international
+     C–B system. D♭/C♯, E♭/D♯, F♯/G♭, A♭/G♯, and B♭/A♯ are enharmonic pairs. Choose the spelling that fits the key.}}%
+
+  \Card{34}{60}{808}{114}%
+  \ChartParagraph{48}{103}{746}{\Localize
+    {\textbf{Форма C, каподастр на 2-м ладу.} Лады формы от 6-й струны к 1-й записаны как x–3–2–0–1–0.
+     Здесь x — приглушённая струна, 0 — струна, которую прижимает только каподастр. На 5-й струне лад 3 от каподастра
+     соответствует физическому ладу 5. Звуки C3–E3–G3–C4–E4 повышаются до D3–F♯3–A3–D4–F♯4 (мажорное трезвучие D).}
+    {\textbf{C shape, capo at fret 2.} The shape’s frets from string 6 to 1 are x–3–2–0–1–0,
+     where x is muted and 0 is open at the capo. On string 5, relative fret 3 is physical fret 5.
+     C3–E3–G3–C4–E4 rises to D3–F♯3–A3–D4–F♯4 (a D major chord).}}%
+}
+
+\ChartPage{2}{\Localize{Подбор форм и последовательности}{Reverse lookup and progressions}}{%
+  \ChartHeadingAt{505}{\Localize{От звучащей тональности к формам}{From a sounding key to shapes}}%
+  \ChartParagraph{34}{493}{774}{\Localize
+    {Выпишите звучащие аккорды целевой тональности или конкретной последовательности.
+     Начните с тоники или другого нужного аккорда. Найдите его в таблице с учётом качества
+     (мажор или минор) и энгармонии. Для каждого совпадения запишите лад и форму. В той же строке
+     проверьте остальные аккорды. Выберите лад, на котором все нужные формы удобно сыграть.}
+    {List the sounding chords required in the target key or progression. Start with its tonic or another required chord.
+     Find that chord in the table, matching its quality (major or minor) and allowing for enharmonic names.
+     For each match, note the fret and shape. Check the remaining chords in that same row.
+     Choose a fret where all the required shapes are playable for you.}}%
+  \ChartParagraph{34}{430}{774}{\Localize
+    {\textbf{Один аккорд.} Для звучащего E♭ подходят, например, форма D на 1-м ладу и форма C на 3-м.
+     Если цель — ми-бемоль мажор, проверьте в каждой из этих строк и другие аккорды песни.}
+    {\textbf{One chord.} For a sounding E♭ major chord, two options are a D shape at fret 1 and a C shape at fret 3.
+     If the target key is E♭ major, check the other chords in the song in each candidate row.}}%
+
+  \Card{34}{253}{808}{393}%
+  \ChartText{48}{374}{13}{ChartHeading}{\bfseries\Localize{Ля мажор · каподастр на 2-м ладу}{A major · capo at fret 2}}%
+  \fill[ChartHeader] (35,343) rectangle (807,361);%
+  \ProgressionRow{348}{\Localize{Ступени}{Scale degrees}}{I}{IV}{V}{vi}{I}%
+  \ProgressionRow{329}{\Localize{Формы}{Shapes}}{G}{C}{D}{Em}{G}%
+  \ProgressionRow{310}{\Localize{Звучащие аккорды}{Sounding chords}}{A}{D}{E}{F♯m}{A}%
+  \ChartParagraph{48}{294}{746}{\Localize
+    {На 5-м ладу форма E тоже даёт тонику A. В этой строке нет F♯m. На 2-м ладу есть все четыре
+     нужных аккорда. Форма Em даёт F♯m, сохраняя минорное качество.}
+    {An E shape at fret 5 also gives the tonic A. That row has no F♯m. Fret 2 covers all four required chords.
+     The Em shape gives F♯m and keeps its minor quality.}}%
+
+  \Card{34}{64}{808}{237}%
+  \ChartText{48}{218}{13}{ChartHeading}{\bfseries\Localize
+    {Из ля минора в соль минор · каподастр на 3-м ладу}
+    {From A minor to G minor · capo at fret 3}}%
+  \fill[ChartHeader] (35,187) rectangle (807,205);%
+  \ProgressionRow{192}{\Localize{Ступени натурального минора}{Natural minor scale degrees}}{i}{iv}{VII}{III}{i}%
+  \ProgressionRow{173}{\Localize{Ля минор без каподастра}{A minor without capo}}{Am}{Dm}{G}{C}{Am}%
+  \ProgressionRow{154}{\Localize{Формы с каподастром на 3-м ладу}{Shapes with capo at fret 3}}{Em}{Am}{D}{G}{Em}%
+  \ProgressionRow{135}{\Localize{Звучащие аккорды в соль миноре}{Sounding chords in G minor}}{Gm}{Cm}{F}{B♭}{Gm}%
+  \ChartParagraph{48}{119}{746}{\Localize
+    {Целевая тональность на два полутона ниже исходной. Возьмите формы последовательности в ми миноре
+     и проверьте их по строке 3. Каподастр поднимает эти формы на три полутона до соль минора.
+     Для перехода в более низкую тональность здесь меняются формы. Регистр отдельных звуков может измениться.}
+    {The target key is two semitones below the original. Use the shapes of the progression in E minor and check them
+     against row 3. The capo raises those shapes by three semitones into G minor. The change of shapes makes the lower
+     sounding key possible. Individual notes may sit in different octaves.}}%
+}
+\end{document}
