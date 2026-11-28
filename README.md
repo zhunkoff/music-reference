@@ -109,6 +109,17 @@ preserve chord quality, extensions, alterations, and slash basses.
 
 - [Shared TeX source](theory/transposition/transposition.tex)
 
+<a name="ref-guitar-capo"></a>
+
+### Guitar capo
+
+Two landscape A4 pages for a full capo on a six-string guitar in standard
+tuning. A table maps eight chord shapes to sounding chords at frets 0–12.
+Examples show how to find shapes for a target chord or progression and how to
+change shapes to play in a lower key.
+
+- [Shared TeX source](guitar/capo/capo.tex)
+
 <a name="ref-scale-construction"></a>
 
 ### Scale and pentatonic construction

@@ -36,6 +36,10 @@ build-chords-in-keys $language="":
 build-transposition $language="":
     latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(transposition), language => $ENV{language});'
 
+# Build the guitar capo reference.
+build-capo $language="":
+    latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(guitar-capo), language => $ENV{language});'
+
 # Build the scale and pentatonic construction reference.
 build-scale-construction $language="":
     latexmk -r scripts/pdf-build.pl -e 'build_pdfs(q(scale-construction), language => $ENV{language});'

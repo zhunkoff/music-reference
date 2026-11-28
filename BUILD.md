@@ -321,6 +321,7 @@ just build-all
 | `just build-circle-of-fifths en` | Build only the English circle of fifths reference |
 | `just build-chords-in-keys en` | Build only the English reference for chords in major and minor keys |
 | `just build-transposition en` | Build only the English transposition reference |
+| `just build-capo en` | Build only the English guitar capo reference |
 | `just build-scale-construction en` | Build only the English scale and pentatonic construction reference |
 | `just build-guitar-scales en` | Build only the English guitar scale maps |
 | `just build-guitar-pentatonics en` | Build only the English guitar pentatonic maps |
@@ -720,6 +721,21 @@ The files are `transposition.en.pdf` and `transposition.ru.pdf`.
 `just build-all` builds both. Check table alignment, staff accidentals, beam
 grouping, and chord symbols at 100% / actual size on landscape A4 in color and
 grayscale. Check the reference links in the sheets and in both books.
+
+### Guitar capo
+
+The [shared TeX source](guitar/capo/capo.tex) produces two landscape A4 sheets
+per language. In the book they follow the transposition reference.
+
+```sh
+just build-capo en
+just build-capo ru
+```
+
+The files are `capo.en.pdf` and `capo.ru.pdf`. `just build-all` builds both.
+Check the shape columns, capo fret rows, accidentals, and progression labels
+at 100% / actual size on landscape A4 in color and grayscale. Check that the
+reference links open the related sections in both books.
 
 ### Cleaning build files
 
