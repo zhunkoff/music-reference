@@ -98,6 +98,17 @@ in A minor.
 
 - [Shared TeX source](theory/harmony/chords-in-keys.tex)
 
+<a name="ref-transposition"></a>
+
+### Transposition
+
+Two landscape A4 sheets on moving music to a new key. A chromatic root table
+covers all 12 pitch classes. Worked examples show how to spell and notate a
+transposed melody, carry major and minor chord progressions to new keys, and
+preserve chord quality, extensions, alterations, and slash basses.
+
+- [Shared TeX source](theory/transposition/transposition.tex)
+
 <a name="ref-scale-construction"></a>
 
 ### Scale and pentatonic construction
